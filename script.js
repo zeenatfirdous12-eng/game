@@ -3,7 +3,8 @@
 /* =========================================================
    WONDERKIDS
    COMPLETE SCRIPT.JS
-   Games + Quiz + Piano Sounds + Timed Challenge + Mobile
+   Games + Quiz + Piano Sounds + Timed Challenge
+   + Extra Games + Kids Poems + Mobile
 ========================================================= */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -38,18 +39,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function loadPlayer() {
     try {
-
-      const saved =
-        localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_KEY);
 
       if (!saved) {
-        return JSON.parse(
-          JSON.stringify(defaultPlayer)
-        );
+        return JSON.parse(JSON.stringify(defaultPlayer));
       }
 
-      const data =
-        JSON.parse(saved);
+      const data = JSON.parse(saved);
 
       return {
         ...defaultPlayer,
@@ -61,33 +57,19 @@ document.addEventListener("DOMContentLoaded", () => {
       };
 
     } catch (error) {
-
-      console.error(
-        "Player loading error:",
-        error
-      );
-
-      return JSON.parse(
-        JSON.stringify(defaultPlayer)
-      );
+      console.error("Player loading error:", error);
+      return JSON.parse(JSON.stringify(defaultPlayer));
     }
   }
 
-
   function savePlayer() {
     try {
-
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify(player)
       );
-
     } catch (error) {
-
-      console.error(
-        "Player saving error:",
-        error
-      );
+      console.error("Player saving error:", error);
     }
   }
 
@@ -100,14 +82,11 @@ document.addEventListener("DOMContentLoaded", () => {
     return document.querySelector(selector);
   }
 
-
   function $$(selector) {
     return document.querySelectorAll(selector);
   }
 
-
   function escapeHTML(value) {
-
     return String(value)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
@@ -116,9 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .replace(/'/g, "&#039;");
   }
 
-
   function shuffle(array) {
-
     return [...array].sort(
       () => Math.random() - 0.5
     );
@@ -126,20 +103,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* =======================================================
-     🎹 PIANO SOUND SYSTEM
-     Web Audio API
-     No external MP3 files required
+     🎹 AUDIO / PIANO SYSTEM
   ======================================================= */
 
   let audioContext = null;
-  let masterGain = null;
-  let pianoReady = false;
-  let soundEnabled = true;
-
-
-  /* -------------------------------------------------------
-     CREATE AUDIO CONTEXT
-  ------------------------------------------------------- */
 
   function getAudioContext() {
 
@@ -149,46 +116,24 @@ document.addEventListener("DOMContentLoaded", () => {
         window.AudioContext ||
         window.webkitAudioContext;
 
-      if (!AudioContext) {
-        return null;
-      }
-
+      if (!AudioContext) return null;
 
       if (!audioContext) {
-
-        audioContext =
-          new AudioContext();
-
-        masterGain =
-          audioContext.createGain();
-
-        masterGain.gain.value =
-          0.65;
-
-        masterGain.connect(
-          audioContext.destination
-        );
+        audioContext = new AudioContext();
       }
-
 
       if (
-        audioContext.state ===
-        "suspended"
+        audioContext.state === "suspended"
       ) {
-
-        audioContext.resume()
-          .catch(() => {});
+        audioContext.resume();
       }
-
-
-      pianoReady = true;
 
       return audioContext;
 
     } catch (error) {
 
       console.log(
-        "Piano sound unavailable"
+        "Audio unavailable"
       );
 
       return null;
@@ -196,207 +141,164 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 
-  /* -------------------------------------------------------
-     ENABLE PIANO AFTER USER TOUCH/CLICK
-  ------------------------------------------------------- */
+  /* Generic tone */
 
-  function enablePianoSound() {
-
-    const ctx =
-      getAudioContext();
-
-    if (!ctx) {
-      return;
-    }
-
-
-    if (
-      ctx.state ===
-      "suspended"
-    ) {
-
-      ctx.resume()
-        .catch(() => {});
-    }
-
-
-    pianoReady = true;
-  }
-
-
-  /* -------------------------------------------------------
-     PIANO NOTE ENGINE
-  ------------------------------------------------------- */
-
-  function pianoNote(
+  function playTone(
     frequency,
-    duration = 0.45,
-    volume = 0.16,
-    delay = 0
+    duration,
+    type = "sine",
+    volume = 0.07
   ) {
 
     try {
 
-      if (!soundEnabled) {
-        return;
-      }
+      const ctx =
+        getAudioContext();
 
+      if (!ctx) return;
+
+      const oscillator =
+        ctx.createOscillator();
+
+      const gain =
+        ctx.createGain();
+
+      oscillator.type = type;
+
+      oscillator.frequency.value =
+        frequency;
+
+      gain.gain.setValueAtTime(
+        0.0001,
+        ctx.currentTime
+      );
+
+      gain.gain.exponentialRampToValueAtTime(
+        volume,
+        ctx.currentTime + 0.01
+      );
+
+      gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        ctx.currentTime + duration
+      );
+
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+
+      oscillator.start();
+
+      oscillator.stop(
+        ctx.currentTime + duration
+      );
+
+    } catch (error) {
+      console.log("Sound unavailable");
+    }
+  }
+
+
+  /* Piano note */
+
+  function playPianoNote(
+    frequency,
+    duration = 0.55,
+    volume = 0.055
+  ) {
+
+    try {
 
       const ctx =
         getAudioContext();
 
-      if (!ctx || !masterGain) {
-        return;
-      }
+      if (!ctx) return;
 
+      const now =
+        ctx.currentTime;
 
-      const startTime =
-        ctx.currentTime +
-        delay;
+      const oscillator =
+        ctx.createOscillator();
 
+      const harmonic =
+        ctx.createOscillator();
 
-      /*
-        Multiple harmonics create
-        a warmer piano-like sound.
-      */
+      const gain =
+        ctx.createGain();
 
-      const partials = [
+      const filter =
+        ctx.createBiquadFilter();
 
-        {
-          multiplier: 1,
-          gain: 1
-        },
+      oscillator.type =
+        "triangle";
 
-        {
-          multiplier: 2,
-          gain: 0.28
-        },
+      harmonic.type =
+        "sine";
 
-        {
-          multiplier: 3,
-          gain: 0.12
-        },
+      oscillator.frequency.value =
+        frequency;
 
-        {
-          multiplier: 4,
-          gain: 0.05
-        }
+      harmonic.frequency.value =
+        frequency * 2;
 
-      ];
+      filter.type =
+        "lowpass";
 
+      filter.frequency.value =
+        2600;
 
-      partials.forEach(
-        partial => {
+      filter.Q.value =
+        0.7;
 
-          const oscillator =
-            ctx.createOscillator();
+      gain.gain.setValueAtTime(
+        0.0001,
+        now
+      );
 
-          const gain =
-            ctx.createGain();
+      gain.gain.exponentialRampToValueAtTime(
+        volume,
+        now + 0.015
+      );
 
+      gain.gain.exponentialRampToValueAtTime(
+        volume * 0.45,
+        now + 0.10
+      );
 
-          oscillator.type =
-            "sine";
+      gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        now + duration
+      );
 
+      oscillator.connect(filter);
+      harmonic.connect(filter);
 
-          oscillator.frequency.setValueAtTime(
-            frequency *
-            partial.multiplier,
-            startTime
-          );
+      filter.connect(gain);
+      gain.connect(ctx.destination);
 
+      oscillator.start(now);
+      harmonic.start(now);
 
-          oscillator.frequency.exponentialRampToValueAtTime(
-            frequency *
-            partial.multiplier *
-            0.997,
-            startTime + 0.08
-          );
+      oscillator.stop(
+        now + duration
+      );
 
-
-          const partialVolume =
-            volume *
-            partial.gain;
-
-
-          /*
-            Piano envelope:
-            quick attack
-            natural decay
-            soft release
-          */
-
-          gain.gain.setValueAtTime(
-            0.0001,
-            startTime
-          );
-
-
-          gain.gain.exponentialRampToValueAtTime(
-            Math.max(
-              0.0002,
-              partialVolume
-            ),
-            startTime + 0.008
-          );
-
-
-          gain.gain.exponentialRampToValueAtTime(
-            Math.max(
-              0.00015,
-              partialVolume * 0.42
-            ),
-            startTime +
-            Math.min(
-              0.18,
-              duration * 0.4
-            )
-          );
-
-
-          gain.gain.exponentialRampToValueAtTime(
-            0.0001,
-            startTime + duration
-          );
-
-
-          oscillator.connect(
-            gain
-          );
-
-          gain.connect(
-            masterGain
-          );
-
-
-          oscillator.start(
-            startTime
-          );
-
-
-          oscillator.stop(
-            startTime +
-            duration +
-            0.03
-          );
-
-        }
+      harmonic.stop(
+        now + duration
       );
 
     } catch (error) {
 
       console.log(
-        "Piano note error"
+        "Piano sound unavailable"
       );
+
     }
   }
 
 
-  /* -------------------------------------------------------
-     PIANO NOTES
-  ------------------------------------------------------- */
+  /* Piano frequencies */
 
-  const PIANO = {
+  const pianoNotes = {
 
     C3: 130.81,
     D3: 146.83,
@@ -419,366 +321,93 @@ document.addEventListener("DOMContentLoaded", () => {
     E5: 659.25,
     F5: 698.46,
     G5: 783.99,
-    A5: 880.00,
-    B5: 987.77,
-
-    C6: 1046.50
+    A5: 880.00
 
   };
 
 
-  /* -------------------------------------------------------
-     SOFT CLICK
-  ------------------------------------------------------- */
-
-  function pianoClick() {
-
-    enablePianoSound();
-
-    pianoNote(
-      PIANO.C5,
-      0.28,
-      0.075
-    );
-  }
-
-
-  /* -------------------------------------------------------
-     GAME START
-  ------------------------------------------------------- */
-
-  function gameStartSound() {
-
-    enablePianoSound();
-
-    pianoNote(
-      PIANO.C5,
-      0.30,
-      0.09,
-      0
-    );
-
-    pianoNote(
-      PIANO.G5,
-      0.35,
-      0.10,
-      0.12
-    );
-
-    pianoNote(
-      PIANO.C6,
-      0.45,
-      0.12,
-      0.24
-    );
-  }
-
-
-  /* -------------------------------------------------------
-     CORRECT ANSWER
-     C - E - G - C
-  ------------------------------------------------------- */
+  /* Correct piano */
 
   function correctSound() {
 
-    enablePianoSound();
-
-    pianoNote(
-      PIANO.C5,
-      0.42,
-      0.15,
-      0
+    playPianoNote(
+      pianoNotes.C4,
+      0.45,
+      0.055
     );
 
-    pianoNote(
-      PIANO.E5,
-      0.42,
-      0.13,
-      0.10
-    );
+    setTimeout(() => {
 
-    pianoNote(
-      PIANO.G5,
-      0.48,
-      0.14,
-      0.20
-    );
+      playPianoNote(
+        pianoNotes.E4,
+        0.45,
+        0.055
+      );
 
-    pianoNote(
-      PIANO.C6,
-      0.65,
-      0.17,
-      0.32
-    );
+    }, 100);
+
+    setTimeout(() => {
+
+      playPianoNote(
+        pianoNotes.G4,
+        0.55,
+        0.06
+      );
+
+    }, 200);
   }
 
 
-  /* -------------------------------------------------------
-     WRONG ANSWER
-  ------------------------------------------------------- */
+  /* Wrong piano */
 
   function wrongSound() {
 
-    enablePianoSound();
-
-    pianoNote(
-      PIANO.E4,
-      0.40,
-      0.13,
-      0
+    playPianoNote(
+      pianoNotes.G3,
+      0.35,
+      0.045
     );
 
-    pianoNote(
-      PIANO.C4,
-      0.55,
-      0.12,
-      0.16
-    );
+    setTimeout(() => {
 
-    pianoNote(
-      PIANO.A3,
-      0.65,
-      0.10,
-      0.32
-    );
+      playPianoNote(
+        pianoNotes.E3,
+        0.45,
+        0.045
+      );
+
+    }, 150);
   }
 
 
-  /* -------------------------------------------------------
-     REWARD
-     Happy piano melody
-  ------------------------------------------------------- */
+  /* Reward piano */
 
   function rewardSound() {
 
-    enablePianoSound();
+    const melody = [
+      "C4",
+      "E4",
+      "G4",
+      "C5",
+      "E5"
+    ];
 
-    pianoNote(
-      PIANO.C5,
-      0.42,
-      0.14,
-      0
-    );
+    melody.forEach(
+      (note, index) => {
 
-    pianoNote(
-      PIANO.E5,
-      0.42,
-      0.14,
-      0.10
-    );
+        setTimeout(() => {
 
-    pianoNote(
-      PIANO.G5,
-      0.42,
-      0.15,
-      0.20
-    );
+          playPianoNote(
+            pianoNotes[note],
+            0.45,
+            0.06
+          );
 
-    pianoNote(
-      PIANO.C6,
-      0.70,
-      0.18,
-      0.32
-    );
+        }, index * 100);
 
-    pianoNote(
-      PIANO.G5,
-      0.40,
-      0.11,
-      0.58
-    );
-
-    pianoNote(
-      PIANO.C6,
-      0.80,
-      0.18,
-      0.70
-    );
-  }
-
-
-  /* -------------------------------------------------------
-     COIN SOUND
-  ------------------------------------------------------- */
-
-  function coinSound() {
-
-    enablePianoSound();
-
-    pianoNote(
-      PIANO.E5,
-      0.30,
-      0.10,
-      0
-    );
-
-    pianoNote(
-      PIANO.G5,
-      0.35,
-      0.11,
-      0.09
-    );
-
-    pianoNote(
-      PIANO.B5,
-      0.45,
-      0.12,
-      0.18
-    );
-  }
-
-
-  /* -------------------------------------------------------
-     LEVEL UP SOUND
-  ------------------------------------------------------- */
-
-  function levelUpSound() {
-
-    enablePianoSound();
-
-    pianoNote(
-      PIANO.C5,
-      0.35,
-      0.12,
-      0
-    );
-
-    pianoNote(
-      PIANO.E5,
-      0.35,
-      0.12,
-      0.10
-    );
-
-    pianoNote(
-      PIANO.G5,
-      0.35,
-      0.13,
-      0.20
-    );
-
-    pianoNote(
-      PIANO.B5,
-      0.45,
-      0.14,
-      0.30
-    );
-
-    pianoNote(
-      PIANO.C6,
-      0.90,
-      0.20,
-      0.45
-    );
-  }
-
-
-  /* -------------------------------------------------------
-     OLD playTone COMPATIBILITY
-  ------------------------------------------------------- */
-
-  function playTone(
-    frequency,
-    duration,
-    type = "sine",
-    volume = 0.07
-  ) {
-
-    if (
-      type === "sine"
-    ) {
-
-      pianoNote(
-        frequency,
-        duration,
-        volume
-      );
-
-      return;
-    }
-
-
-    try {
-
-      const ctx =
-        getAudioContext();
-
-      if (!ctx) {
-        return;
       }
-
-
-      const oscillator =
-        ctx.createOscillator();
-
-      const gain =
-        ctx.createGain();
-
-
-      oscillator.type =
-        type;
-
-
-      oscillator.frequency.value =
-        frequency;
-
-
-      gain.gain.setValueAtTime(
-        volume,
-        ctx.currentTime
-      );
-
-
-      gain.gain.exponentialRampToValueAtTime(
-        0.001,
-        ctx.currentTime +
-        duration
-      );
-
-
-      oscillator.connect(
-        gain
-      );
-
-
-      gain.connect(
-        ctx.destination
-      );
-
-
-      oscillator.start();
-
-
-      oscillator.stop(
-        ctx.currentTime +
-        duration
-      );
-
-    } catch (error) {
-
-      console.log(
-        "Sound unavailable"
-      );
-    }
+    );
   }
-
-
-  /* -------------------------------------------------------
-     BROWSER AUDIO UNLOCK
-  ------------------------------------------------------- */
-
-  document.addEventListener(
-    "pointerdown",
-    () => {
-
-      enablePianoSound();
-
-    },
-    {
-      once: true,
-      passive: true
-    }
-  );
 
 
   /* =======================================================
@@ -814,34 +443,28 @@ document.addEventListener("DOMContentLoaded", () => {
     const dailyProgressText =
       $("#dailyProgressText");
 
-
     if (coinCount) {
       coinCount.textContent =
         player.coins;
     }
-
 
     if (heartCount) {
       heartCount.textContent =
         player.hearts;
     }
 
-
     if (heroName) {
       heroName.textContent =
         player.name;
     }
-
 
     player.level =
       Math.floor(
         player.xp / 1000
       ) + 1;
 
-
     const currentXP =
       player.xp % 1000;
-
 
     const percentage =
       Math.min(
@@ -849,46 +472,39 @@ document.addEventListener("DOMContentLoaded", () => {
         (currentXP / 1000) * 100
       );
 
-
     if (levelNumber) {
       levelNumber.textContent =
         player.level;
     }
-
 
     if (levelText) {
       levelText.textContent =
         player.level;
     }
 
-
     if (xpFill) {
       xpFill.style.width =
         percentage + "%";
     }
-
 
     if (xpText) {
       xpText.textContent =
         `${currentXP} / 1000 XP`;
     }
 
-
     if (streakCount) {
       streakCount.textContent =
         player.streak;
     }
 
-
     if (dailyProgressText) {
 
       dailyProgressText.textContent =
         Math.round(
-          (player.dailyProgress / 3) *
-          100
+          (player.dailyProgress / 3) * 100
         ) + "%";
-    }
 
+    }
 
     updateChallengeUI();
 
@@ -913,31 +529,24 @@ document.addEventListener("DOMContentLoaded", () => {
     const button =
       $("#challengeBtn");
 
-
     const progress =
       Math.min(
         player.dailyProgress,
         3
       );
 
-
     const percentage =
       (progress / 3) * 100;
 
-
     if (fill) {
-
       fill.style.width =
         percentage + "%";
     }
 
-
     if (count) {
-
       count.textContent =
         `${progress} / 3`;
     }
-
 
     if (button) {
 
@@ -945,6 +554,7 @@ document.addEventListener("DOMContentLoaded", () => {
         progress >= 3
           ? "Mission Complete ✓"
           : "Start Mission";
+
     }
   }
 
@@ -958,20 +568,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (
       player.quizQuestions >= 20
     ) {
-
       player.badges.brainMaster =
         true;
     }
 
-
     if (
       player.level >= 10
     ) {
-
       player.badges.wonderKid =
         true;
     }
-
 
     const brainMaster =
       $("#brainMasterBadge");
@@ -979,15 +585,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const wonderKid =
       $("#wonderKidBadge");
 
-
     if (brainMaster) {
 
       brainMaster.classList.toggle(
         "unlocked",
         player.badges.brainMaster
       );
-    }
 
+    }
 
     if (wonderKid) {
 
@@ -995,6 +600,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "unlocked",
         player.badges.wonderKid
       );
+
     }
   }
 
@@ -1014,8 +620,7 @@ document.addEventListener("DOMContentLoaded", () => {
     updatePlayerUI();
 
     if (sound) {
-
-      coinSound();
+      rewardSound();
     }
 
     showToast(
@@ -1030,34 +635,14 @@ document.addEventListener("DOMContentLoaded", () => {
     sound = false
   ) {
 
-    const oldLevel =
-      player.level;
-
     player.xp +=
       amount;
 
     updatePlayerUI();
 
-
-    if (
-      player.level >
-      oldLevel
-    ) {
-
-      levelUpSound();
-
-      createConfetti();
-
-      showToast(
-        "🎊",
-        `Level ${player.level}!`
-      );
-
-    } else if (sound) {
-
+    if (sound) {
       correctSound();
     }
-
 
     showToast(
       "⭐",
@@ -1074,14 +659,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     player.completedActivities++;
 
-
     if (
       player.dailyProgress < 3
     ) {
-
       player.dailyProgress++;
     }
-
 
     if (
       player.dailyProgress >= 3 &&
@@ -1091,8 +673,7 @@ document.addEventListener("DOMContentLoaded", () => {
       player.dailyRewardClaimed =
         true;
 
-      player.coins +=
-        50;
+      player.coins += 50;
 
       rewardSound();
 
@@ -1103,7 +684,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       createConfetti();
     }
-
 
     savePlayer();
 
@@ -1116,7 +696,6 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   let toastTimer = null;
-
 
   function showToast(
     icon,
@@ -1132,45 +711,34 @@ document.addEventListener("DOMContentLoaded", () => {
     const toastMessage =
       $("#toastMessage");
 
-
     if (!toast) return;
 
-
     if (toastIcon) {
-
       toastIcon.textContent =
         icon || "🎉";
     }
 
-
     if (toastMessage) {
-
       toastMessage.textContent =
         message;
     }
-
 
     toast.classList.add(
       "show"
     );
 
-
     clearTimeout(
       toastTimer
     );
 
-
     toastTimer =
-      setTimeout(
-        () => {
+      setTimeout(() => {
 
-          toast.classList.remove(
-            "show"
-          );
+        toast.classList.remove(
+          "show"
+        );
 
-        },
-        2200
-      );
+      }, 2200);
   }
 
 
@@ -1185,10 +753,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!container) return;
 
-
     container.innerHTML =
       "";
-
 
     const icons = [
       "🎉",
@@ -1196,7 +762,6 @@ document.addEventListener("DOMContentLoaded", () => {
       "✨",
       "🎊"
     ];
-
 
     for (
       let i = 0;
@@ -1209,7 +774,6 @@ document.addEventListener("DOMContentLoaded", () => {
           "span"
         );
 
-
       piece.textContent =
         icons[
           Math.floor(
@@ -1217,7 +781,6 @@ document.addEventListener("DOMContentLoaded", () => {
             icons.length
           )
         ];
-
 
       piece.style.position =
         "fixed";
@@ -1244,22 +807,17 @@ document.addEventListener("DOMContentLoaded", () => {
           Math.random() * 2
         }s linear forwards`;
 
-
       container.appendChild(
         piece
       );
     }
 
+    setTimeout(() => {
 
-    setTimeout(
-      () => {
+      container.innerHTML =
+        "";
 
-        container.innerHTML =
-          "";
-
-      },
-      4000
-    );
+    }, 4000);
   }
 
 
@@ -1274,11 +832,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!modal) return;
 
-
     modal.classList.add(
       "open"
     );
-
 
     document.body.classList.add(
       "modal-open"
@@ -1293,11 +849,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!modal) return;
 
-
     modal.classList.remove(
       "open"
     );
-
 
     if (
       !document.querySelector(
@@ -1308,6 +862,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.body.classList.remove(
         "modal-open"
       );
+
     }
   }
 
@@ -1318,17 +873,16 @@ document.addEventListener("DOMContentLoaded", () => {
       timedInterval
     );
 
+    stopPoemAudio();
 
-    $$(".modal-overlay")
-      .forEach(
-        modal => {
-
-          modal.classList.remove(
-            "open"
-          );
-        }
-      );
-
+    $$(
+      ".modal-overlay"
+    ).forEach(
+      modal =>
+        modal.classList.remove(
+          "open"
+        )
+    );
 
     document.body.classList.remove(
       "modal-open"
@@ -1351,79 +905,65 @@ document.addEventListener("DOMContentLoaded", () => {
     const playerName =
       $("#playerName");
 
-
     if (profileBtn) {
 
       profileBtn.addEventListener(
         "click",
         () => {
 
-          pianoClick();
-
-
           if (playerName) {
 
             playerName.value =
               player.name;
+
           }
 
-
           $$(".avatar-option")
-            .forEach(
-              button => {
+            .forEach(button => {
 
-                button.classList.toggle(
-                  "selected",
-                  button.dataset.avatar ===
-                    player.avatar
-                );
+              button.classList.toggle(
+                "selected",
+                button.dataset.avatar ===
+                  player.avatar
+              );
 
-              }
-            );
-
+            });
 
           openModal(
             "profileModal"
           );
+
         }
       );
     }
 
 
     $$(".avatar-option")
-      .forEach(
-        button => {
+      .forEach(button => {
 
-          button.addEventListener(
-            "click",
-            () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-              pianoClick();
-
-
-              $$(".avatar-option")
-                .forEach(
-                  btn =>
-                    btn.classList.remove(
-                      "selected"
-                    )
-                );
-
-
-              button.classList.add(
-                "selected"
+            $$(".avatar-option")
+              .forEach(btn =>
+                btn.classList.remove(
+                  "selected"
+                )
               );
 
+            button.classList.add(
+              "selected"
+            );
 
-              player.avatar =
-                button.dataset.avatar ||
-                "🧒";
+            player.avatar =
+              button.dataset.avatar ||
+              "🧒";
 
-            }
-          );
+          }
+        );
 
-        }
-      );
+      });
 
 
     if (saveProfile) {
@@ -1432,22 +972,17 @@ document.addEventListener("DOMContentLoaded", () => {
         "click",
         () => {
 
-          pianoClick();
-
-
           if (playerName) {
 
             const name =
               playerName.value.trim();
 
-
             if (name) {
-
               player.name =
                 name;
             }
-          }
 
+          }
 
           savePlayer();
 
@@ -1457,11 +992,11 @@ document.addEventListener("DOMContentLoaded", () => {
             "profileModal"
           );
 
-
           showToast(
             "💾",
             "Profile saved!"
           );
+
         }
       );
     }
@@ -1475,54 +1010,46 @@ document.addEventListener("DOMContentLoaded", () => {
   function setupModalClose() {
 
     $$("[data-close]")
-      .forEach(
-        button => {
+      .forEach(button => {
 
-          button.addEventListener(
-            "click",
-            () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-              pianoClick();
+            const id =
+              button.dataset.close;
 
-
-              const id =
-                button.dataset.close;
-
-
-              if (id) {
-
-                closeModal(id);
-              }
+            if (id) {
+              closeModal(id);
             }
-          );
 
-        }
-      );
+          }
+        );
+
+      });
 
 
     $$(".modal-overlay")
-      .forEach(
-        modal => {
+      .forEach(modal => {
 
-          modal.addEventListener(
-            "click",
-            event => {
+        modal.addEventListener(
+          "click",
+          event => {
 
-              if (
-                event.target ===
-                modal
-              ) {
+            if (
+              event.target === modal
+            ) {
 
-                closeModal(
-                  modal.id
-                );
-              }
+              closeModal(
+                modal.id
+              );
 
             }
-          );
 
-        }
-      );
+          }
+        );
+
+      });
 
 
     document.addEventListener(
@@ -1530,12 +1057,13 @@ document.addEventListener("DOMContentLoaded", () => {
       event => {
 
         if (
-          event.key ===
-          "Escape"
+          event.key === "Escape"
         ) {
 
           closeAllModals();
+
         }
+
       }
     );
   }
@@ -1553,9 +1081,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const gameContent =
       $("#gameContent");
 
-
     if (!gameContent) return;
-
 
     gameContent.innerHTML = `
 
@@ -1568,7 +1094,6 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
 
     `;
-
 
     openModal(
       "gameModal"
@@ -1587,14 +1112,8 @@ document.addEventListener("DOMContentLoaded", () => {
       {
         question:
           "What is 5 + 3?",
-
-        options: [
-          "6",
-          "7",
-          "8",
-          "9"
-        ],
-
+        options:
+          ["6", "7", "8", "9"],
         answer:
           "8"
       },
@@ -1602,14 +1121,8 @@ document.addEventListener("DOMContentLoaded", () => {
       {
         question:
           "What is 10 - 4?",
-
-        options: [
-          "5",
-          "6",
-          "7",
-          "8"
-        ],
-
+        options:
+          ["5", "6", "7", "8"],
         answer:
           "6"
       },
@@ -1617,34 +1130,26 @@ document.addEventListener("DOMContentLoaded", () => {
       {
         question:
           "What is 3 × 4?",
-
-        options: [
-          "7",
-          "10",
-          "12",
-          "14"
-        ],
-
+        options:
+          ["7", "10", "12", "14"],
         answer:
           "12"
       }
 
     ],
 
-
     english: [
 
       {
         question:
           "Which word is a fruit?",
-
-        options: [
-          "Apple",
-          "Chair",
-          "Book",
-          "Table"
-        ],
-
+        options:
+          [
+            "Apple",
+            "Chair",
+            "Book",
+            "Table"
+          ],
         answer:
           "Apple"
       },
@@ -1652,14 +1157,13 @@ document.addEventListener("DOMContentLoaded", () => {
       {
         question:
           "Which one is an animal?",
-
-        options: [
-          "Dog",
-          "Car",
-          "Pencil",
-          "House"
-        ],
-
+        options:
+          [
+            "Dog",
+            "Car",
+            "Pencil",
+            "House"
+          ],
         answer:
           "Dog"
       },
@@ -1667,34 +1171,31 @@ document.addEventListener("DOMContentLoaded", () => {
       {
         question:
           "What is the opposite of BIG?",
-
-        options: [
-          "Tall",
-          "Small",
-          "Fast",
-          "Long"
-        ],
-
+        options:
+          [
+            "Tall",
+            "Small",
+            "Fast",
+            "Long"
+          ],
         answer:
           "Small"
       }
 
     ],
 
-
     science: [
 
       {
         question:
           "Which planet do we live on?",
-
-        options: [
-          "Mars",
-          "Earth",
-          "Venus",
-          "Jupiter"
-        ],
-
+        options:
+          [
+            "Mars",
+            "Earth",
+            "Venus",
+            "Jupiter"
+          ],
         answer:
           "Earth"
       },
@@ -1702,14 +1203,13 @@ document.addEventListener("DOMContentLoaded", () => {
       {
         question:
           "What do plants need to grow?",
-
-        options: [
-          "Sunlight",
-          "Plastic",
-          "Metal",
-          "Glass"
-        ],
-
+        options:
+          [
+            "Sunlight",
+            "Plastic",
+            "Metal",
+            "Glass"
+          ],
         answer:
           "Sunlight"
       },
@@ -1717,34 +1217,26 @@ document.addEventListener("DOMContentLoaded", () => {
       {
         question:
           "Which animal gives us milk?",
-
-        options: [
-          "Cow",
-          "Lion",
-          "Tiger",
-          "Eagle"
-        ],
-
+        options:
+          [
+            "Cow",
+            "Lion",
+            "Tiger",
+            "Eagle"
+          ],
         answer:
           "Cow"
       }
 
     ],
 
-
     general: [
 
       {
         question:
           "How many days are in a week?",
-
-        options: [
-          "5",
-          "6",
-          "7",
-          "8"
-        ],
-
+        options:
+          ["5", "6", "7", "8"],
         answer:
           "7"
       },
@@ -1752,14 +1244,13 @@ document.addEventListener("DOMContentLoaded", () => {
       {
         question:
           "What color is the sky on a clear day?",
-
-        options: [
-          "Blue",
-          "Green",
-          "Pink",
-          "Black"
-        ],
-
+        options:
+          [
+            "Blue",
+            "Green",
+            "Pink",
+            "Black"
+          ],
         answer:
           "Blue"
       },
@@ -1767,14 +1258,13 @@ document.addEventListener("DOMContentLoaded", () => {
       {
         question:
           "How many legs does a spider have?",
-
-        options: [
-          "4",
-          "6",
-          "8",
-          "10"
-        ],
-
+        options:
+          [
+            "4",
+            "6",
+            "8",
+            "10"
+          ],
         answer:
           "8"
       }
@@ -1792,26 +1282,22 @@ document.addEventListener("DOMContentLoaded", () => {
     type = "general"
   ) {
 
-    gameStartSound();
-
-
     const questions =
       quizData[type] ||
       quizData.general;
 
-
     let index = 0;
     let score = 0;
-
 
     function renderQuestion() {
 
       const question =
         questions[index];
 
-
       openGameModal(
+
         "🧠 Quiz Time!",
+
         `
 
           <div class="quiz-question">
@@ -1823,22 +1309,16 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="quiz-options">
 
               ${question.options
-                .map(
-                  option => `
+                .map(option => `
 
-                    <button
-                      class="quiz-option"
-                      data-answer="${escapeHTML(
-                        option
-                      )}"
-                    >
-                      ${escapeHTML(
-                        option
-                      )}
-                    </button>
+                  <button
+                    class="quiz-option"
+                    data-answer="${escapeHTML(option)}"
+                  >
+                    ${escapeHTML(option)}
+                  </button>
 
-                  `
-                )
+                `)
                 .join("")}
 
             </div>
@@ -1857,102 +1337,90 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
       $$(".quiz-option")
-        .forEach(
-          button => {
+        .forEach(button => {
 
-            button.addEventListener(
-              "click",
-              () => {
+          button.addEventListener(
+            "click",
+            () => {
 
-                pianoClick();
+              const selected =
+                button.dataset.answer;
 
-
-                const selected =
-                  button.dataset.answer;
+              player.quizQuestions++;
 
 
-                player.quizQuestions++;
+              if (
+                selected ===
+                question.answer
+              ) {
 
+                score++;
 
-                if (
-                  selected ===
-                  question.answer
-                ) {
+                correctSound();
 
-                  score++;
+                addCoins(
+                  10,
+                  false
+                );
 
-                  correctSound();
+                addXP(
+                  30,
+                  false
+                );
 
-                  addCoins(
-                    10,
-                    false
+                button.classList.add(
+                  "correct"
+                );
+
+                showToast(
+                  "🎉",
+                  "Correct!"
+                );
+
+              } else {
+
+                wrongSound();
+
+                player.hearts =
+                  Math.max(
+                    0,
+                    player.hearts - 1
                   );
 
-                  addXP(
-                    30,
-                    false
-                  );
+                updatePlayerUI();
 
-
-                  button.classList.add(
-                    "correct"
-                  );
-
-
-                  showToast(
-                    "🎉",
-                    "Correct!"
-                  );
-
-                } else {
-
-                  wrongSound();
-
-
-                  player.hearts =
-                    Math.max(
-                      0,
-                      player.hearts - 1
-                    );
-
-
-                  updatePlayerUI();
-
-
-                  showToast(
-                    "💡",
-                    `Correct answer: ${question.answer}`
-                  );
-                }
-
-
-                setTimeout(
-                  () => {
-
-                    index++;
-
-
-                    if (
-                      index <
-                      questions.length
-                    ) {
-
-                      renderQuestion();
-
-                    } else {
-
-                      finishQuiz();
-                    }
-
-                  },
-                  900
+                showToast(
+                  "💡",
+                  `Correct answer: ${question.answer}`
                 );
 
               }
-            );
 
-          }
-        );
+
+              setTimeout(() => {
+
+                index++;
+
+                if (
+                  index <
+                  questions.length
+                ) {
+
+                  renderQuestion();
+
+                } else {
+
+                  finishQuiz();
+
+                }
+
+              }, 900);
+
+            }
+          );
+
+        });
+
     }
 
 
@@ -1960,19 +1428,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
       completeActivity();
 
-      rewardSound();
-
-
       openGameModal(
+
         "🏆 Quiz Complete!",
+
         `
 
           <div class="game-result">
 
             <div
-              style="
-                font-size:60px;
-              "
+              style="font-size:60px;"
             >
               🎉
             </div>
@@ -2008,20 +1473,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const done =
         $("#quizDone");
 
-
       if (done) {
 
         done.addEventListener(
           "click",
-          () => {
-
-            pianoClick();
-
+          () =>
             closeModal(
               "gameModal"
-            );
-          }
+            )
         );
+
       }
     }
 
@@ -2035,9 +1496,6 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   function startMemoryGame() {
-
-    gameStartSound();
-
 
     const symbols = [
 
@@ -2061,13 +1519,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     ];
 
-
     const cards =
       shuffle(symbols);
 
 
     openGameModal(
+
       "🧩 Memory Match",
+
       `
 
         <div
@@ -2075,24 +1534,19 @@ document.addEventListener("DOMContentLoaded", () => {
           id="memoryGrid"
         >
 
-          ${cards
-            .map(
-              (
-                symbol,
-                index
-              ) => `
+          ${cards.map(
+            (symbol, index) => `
 
-                <button
-                  class="memory-card"
-                  data-index="${index}"
-                  data-symbol="${symbol}"
-                >
-                  ❓
-                </button>
+              <button
+                class="memory-card"
+                data-index="${index}"
+                data-symbol="${symbol}"
+              >
+                ❓
+              </button>
 
-              `
-            )
-            .join("")}
+            `
+          ).join("")}
 
         </div>
 
@@ -2111,151 +1565,138 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     $$(".memory-card")
-      .forEach(
-        card => {
+      .forEach(card => {
 
-          card.addEventListener(
-            "click",
-            () => {
+        card.addEventListener(
+          "click",
+          () => {
 
-              pianoClick();
-
-
-              if (
-                lock ||
-                card.classList.contains(
-                  "matched"
-                )
-              ) {
-
-                return;
-              }
+            if (
+              lock ||
+              card.classList.contains(
+                "matched"
+              )
+            ) {
+              return;
+            }
 
 
-              card.textContent =
-                card.dataset.symbol;
+            card.textContent =
+              card.dataset.symbol;
+
+            card.classList.add(
+              "flipped"
+            );
 
 
-              card.classList.add(
-                "flipped"
+            if (!first) {
+
+              first = card;
+
+              return;
+
+            }
+
+
+            second = card;
+
+            lock = true;
+
+
+            if (
+              first.dataset.symbol ===
+              second.dataset.symbol
+            ) {
+
+              correctSound();
+
+              first.classList.add(
+                "matched"
               );
 
+              second.classList.add(
+                "matched"
+              );
 
-              if (!first) {
+              matched++;
 
-                first = card;
+              first = null;
+              second = null;
+              lock = false;
 
-                return;
+
+              if (matched === 6) {
+
+                addCoins(
+                  30,
+                  false
+                );
+
+                addXP(
+                  50,
+                  false
+                );
+
+                completeActivity();
+
+                rewardSound();
+
+                createConfetti();
+
+
+                const status =
+                  $("#memoryStatus");
+
+                if (status) {
+
+                  status.textContent =
+                    "🎉 Amazing! You matched everything!";
+
+                }
+
               }
 
+            } else {
 
-              second = card;
+              wrongSound();
 
-              lock = true;
+              setTimeout(() => {
 
+                if (first) {
 
-              if (
-                first.dataset.symbol ===
-                second.dataset.symbol
-              ) {
+                  first.textContent =
+                    "❓";
 
-                correctSound();
+                  first.classList.remove(
+                    "flipped"
+                  );
 
+                }
 
-                first.classList.add(
-                  "matched"
-                );
+                if (second) {
 
-                second.classList.add(
-                  "matched"
-                );
+                  second.textContent =
+                    "❓";
 
+                  second.classList.remove(
+                    "flipped"
+                  );
 
-                matched++;
-
+                }
 
                 first = null;
                 second = null;
-
                 lock = false;
 
-
-                if (
-                  matched === 6
-                ) {
-
-                  addCoins(
-                    30,
-                    false
-                  );
-
-                  addXP(
-                    50,
-                    false
-                  );
-
-                  completeActivity();
-
-                  rewardSound();
-
-                  createConfetti();
-
-
-                  const status =
-                    $("#memoryStatus");
-
-
-                  if (status) {
-
-                    status.textContent =
-                      "🎉 Amazing! You matched everything!";
-                  }
-                }
-
-              } else {
-
-                wrongSound();
-
-
-                setTimeout(
-                  () => {
-
-                    if (first) {
-
-                      first.textContent =
-                        "❓";
-
-                      first.classList.remove(
-                        "flipped"
-                      );
-                    }
-
-
-                    if (second) {
-
-                      second.textContent =
-                        "❓";
-
-                      second.classList.remove(
-                        "flipped"
-                      );
-                    }
-
-
-                    first = null;
-                    second = null;
-                    lock = false;
-
-                  },
-                  700
-                );
-              }
+              }, 700);
 
             }
-          );
 
-        }
-      );
+          }
+        );
+
+      });
+
   }
 
 
@@ -2264,9 +1705,6 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   function startWordGame() {
-
-    gameStartSound();
-
 
     const words = [
 
@@ -2301,12 +1739,13 @@ document.addEventListener("DOMContentLoaded", () => {
         )
       ];
 
-
     let answer = "";
 
 
     openGameModal(
+
       "🔤 Word Builder",
+
       `
 
         <p class="word-hint">
@@ -2327,18 +1766,16 @@ document.addEventListener("DOMContentLoaded", () => {
           ${shuffle(
             item.word.split("")
           )
-            .map(
-              letter => `
+            .map(letter => `
 
-                <button
-                  class="letter-btn"
-                  data-letter="${letter}"
-                >
-                  ${letter}
-                </button>
+              <button
+                class="letter-btn"
+                data-letter="${letter}"
+              >
+                ${letter}
+              </button>
 
-              `
-            )
+            `)
             .join("")}
 
         </div>
@@ -2359,50 +1796,43 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     $$(".letter-btn")
-      .forEach(
-        button => {
+      .forEach(button => {
 
-          button.addEventListener(
-            "click",
-            () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-              pianoClick();
+            if (
+              answer.length >=
+              item.word.length
+            ) {
+              return;
+            }
 
+            answer +=
+              button.dataset.letter;
 
-              if (
-                answer.length >=
-                item.word.length
-              ) {
-
-                return;
-              }
-
-
-              answer +=
-                button.dataset.letter;
+            button.disabled =
+              true;
 
 
-              button.disabled =
-                true;
+            if (display) {
 
-
-              if (display) {
-
-                display.textContent =
-                  answer
-                    .padEnd(
-                      item.word.length,
-                      "_"
-                    )
-                    .split("")
-                    .join(" ");
-              }
+              display.textContent =
+                answer
+                  .padEnd(
+                    item.word.length,
+                    "_"
+                  )
+                  .split("")
+                  .join(" ");
 
             }
-          );
 
-        }
-      );
+          }
+        );
+
+      });
 
 
     const submit =
@@ -2415,12 +1845,8 @@ document.addEventListener("DOMContentLoaded", () => {
         "click",
         () => {
 
-          pianoClick();
-
-
           if (
-            answer ===
-            item.word
+            answer === item.word
           ) {
 
             correctSound();
@@ -2436,7 +1862,6 @@ document.addEventListener("DOMContentLoaded", () => {
             );
 
             completeActivity();
-
 
             showToast(
               "🎉",
@@ -2462,10 +1887,12 @@ document.addEventListener("DOMContentLoaded", () => {
               "💡",
               "Try again!"
             );
+
           }
 
         }
       );
+
     }
   }
 
@@ -2476,27 +1903,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function startMathGame() {
 
-    gameStartSound();
-
-
     const first =
       Math.floor(
         Math.random() * 20
       ) + 1;
-
 
     const second =
       Math.floor(
         Math.random() * 20
       ) + 1;
 
-
     const operations = [
       "+",
       "-",
       "×"
     ];
-
 
     const operation =
       operations[
@@ -2506,13 +1927,10 @@ document.addEventListener("DOMContentLoaded", () => {
         )
       ];
 
-
     let answer;
 
 
-    if (
-      operation === "+"
-    ) {
+    if (operation === "+") {
 
       answer =
         first + second;
@@ -2540,12 +1958,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       answer =
         first * second;
+
     }
 
 
     const options =
       new Set();
-
 
     options.add(
       answer
@@ -2563,20 +1981,21 @@ document.addEventListener("DOMContentLoaded", () => {
         ) -
         5;
 
-
       if (
         variation >= 0
       ) {
-
         options.add(
           variation
         );
       }
+
     }
 
 
     openGameModal(
+
       "➕ Math Challenge",
+
       `
 
         <div class="math-question">
@@ -2593,23 +2012,21 @@ document.addEventListener("DOMContentLoaded", () => {
             = ?
           </div>
 
-          <div class="quiz-options">
+          <div
+            class="quiz-options"
+          >
 
-            ${shuffle(
-              [...options]
-            )
-              .map(
-                number => `
+            ${shuffle([...options])
+              .map(number => `
 
-                  <button
-                    class="quiz-option math-answer"
-                    data-answer="${number}"
-                  >
-                    ${number}
-                  </button>
+                <button
+                  class="quiz-option math-answer"
+                  data-answer="${number}"
+                >
+                  ${number}
+                </button>
 
-                `
-              )
+              `)
               .join("")}
 
           </div>
@@ -2621,96 +2038,84 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     $$(".math-answer")
-      .forEach(
-        button => {
+      .forEach(button => {
 
-          button.addEventListener(
-            "click",
-            () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-              pianoClick();
+            const selected =
+              Number(
+                button.dataset.answer
+              );
 
 
-              const selected =
-                Number(
-                  button.dataset.answer
+            if (
+              selected === answer
+            ) {
+
+              correctSound();
+
+              button.classList.add(
+                "correct"
+              );
+
+              addCoins(
+                15,
+                false
+              );
+
+              addXP(
+                35,
+                false
+              );
+
+              completeActivity();
+
+              showToast(
+                "🎉",
+                "Correct answer!"
+              );
+
+              createConfetti();
+
+
+              setTimeout(
+                () =>
+                  closeModal(
+                    "gameModal"
+                  ),
+                1000
+              );
+
+            } else {
+
+              wrongSound();
+
+              button.classList.add(
+                "wrong"
+              );
+
+              player.hearts =
+                Math.max(
+                  0,
+                  player.hearts - 1
                 );
 
+              updatePlayerUI();
 
-              if (
-                selected ===
-                answer
-              ) {
-
-                correctSound();
-
-
-                button.classList.add(
-                  "correct"
-                );
-
-
-                addCoins(
-                  15,
-                  false
-                );
-
-                addXP(
-                  35,
-                  false
-                );
-
-                completeActivity();
-
-
-                showToast(
-                  "🎉",
-                  "Correct answer!"
-                );
-
-
-                createConfetti();
-
-
-                setTimeout(
-                  () =>
-                    closeModal(
-                      "gameModal"
-                    ),
-                  1000
-                );
-
-              } else {
-
-                wrongSound();
-
-
-                button.classList.add(
-                  "wrong"
-                );
-
-
-                player.hearts =
-                  Math.max(
-                    0,
-                    player.hearts - 1
-                  );
-
-
-                updatePlayerUI();
-
-
-                showToast(
-                  "💡",
-                  `Answer was ${answer}`
-                );
-              }
+              showToast(
+                "💡",
+                `Answer was ${answer}`
+              );
 
             }
-          );
 
-        }
-      );
+          }
+        );
+
+      });
+
   }
 
 
@@ -2719,9 +2124,6 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   function startColorGame() {
-
-    gameStartSound();
-
 
     const colors = [
 
@@ -2769,10 +2171,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let options =
       shuffle(colors)
-        .slice(
-          0,
-          4
-        );
+        .slice(0, 4);
 
 
     if (
@@ -2785,6 +2184,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       options[0] =
         target;
+
     }
 
 
@@ -2793,7 +2193,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     openGameModal(
+
       "🎨 Color Game",
+
       `
 
         <h3>
@@ -2815,27 +2217,22 @@ document.addEventListener("DOMContentLoaded", () => {
           "
         >
 
-          ${options
-            .map(
-              color => `
+          ${options.map(color => `
 
-                <button
-                  class="color-answer"
-                  data-color="${color.name}"
-                  style="
-                    height:90px;
-                    border:none;
-                    border-radius:18px;
-                    background:${color.value};
-                    cursor:pointer;
-                    font-size:0;
-                  "
-                >
-                </button>
+            <button
+              class="color-answer"
+              data-color="${color.name}"
+              style="
+                height:90px;
+                border:none;
+                border-radius:18px;
+                background:${color.value};
+                cursor:pointer;
+                font-size:0;
+              "
+            ></button>
 
-              `
-            )
-            .join("")}
+          `).join("")}
 
         </div>
 
@@ -2844,92 +2241,81 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     $$(".color-answer")
-      .forEach(
-        button => {
+      .forEach(button => {
 
-          button.addEventListener(
-            "click",
-            () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-              pianoClick();
-
-
-              const selected =
-                button.dataset.color;
+            const selected =
+              button.dataset.color;
 
 
-              if (
-                selected ===
-                target.name
-              ) {
+            if (
+              selected ===
+              target.name
+            ) {
 
-                correctSound();
+              correctSound();
+
+              button.style.outline =
+                "5px solid #22c55e";
+
+              addCoins(
+                15,
+                false
+              );
+
+              addXP(
+                35,
+                false
+              );
+
+              completeActivity();
+
+              showToast(
+                "🎉",
+                "Great color match!"
+              );
+
+              createConfetti();
 
 
-                button.style.outline =
-                  "5px solid #22c55e";
+              setTimeout(
+                () =>
+                  closeModal(
+                    "gameModal"
+                  ),
+                1000
+              );
 
+            } else {
 
-                addCoins(
-                  15,
-                  false
+              wrongSound();
+
+              button.style.outline =
+                "5px solid #ef4444";
+
+              player.hearts =
+                Math.max(
+                  0,
+                  player.hearts - 1
                 );
 
-                addXP(
-                  35,
-                  false
-                );
+              updatePlayerUI();
 
-                completeActivity();
-
-
-                showToast(
-                  "🎉",
-                  "Great color match!"
-                );
-
-
-                createConfetti();
-
-
-                setTimeout(
-                  () =>
-                    closeModal(
-                      "gameModal"
-                    ),
-                  1000
-                );
-
-              } else {
-
-                wrongSound();
-
-
-                button.style.outline =
-                  "5px solid #ef4444";
-
-
-                player.hearts =
-                  Math.max(
-                    0,
-                    player.hearts - 1
-                  );
-
-
-                updatePlayerUI();
-
-
-                showToast(
-                  "💡",
-                  "Try another color!"
-                );
-              }
+              showToast(
+                "💡",
+                "Try another color!"
+              );
 
             }
-          );
 
-        }
-      );
+          }
+        );
+
+      });
+
   }
 
 
@@ -2939,18 +2325,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function startNumberGame() {
 
-    gameStartSound();
-
-
     const target =
       Math.floor(
         Math.random() * 20
       ) + 1;
 
-
     const numbers =
       new Set();
-
 
     numbers.add(
       target
@@ -2966,11 +2347,14 @@ document.addEventListener("DOMContentLoaded", () => {
           Math.random() * 20
         ) + 1
       );
+
     }
 
 
     openGameModal(
+
       "🔢 Number Hunt",
+
       `
 
         <h3>
@@ -2991,30 +2375,27 @@ document.addEventListener("DOMContentLoaded", () => {
           "
         >
 
-          ${shuffle(
-            [...numbers]
-          )
-            .map(
-              number => `
+          ${shuffle([...numbers])
+            .map(number => `
 
-                <button
-                  class="number-answer"
-                  data-number="${number}"
-                  style="
-                    min-height:70px;
-                    border-radius:16px;
-                    border:2px solid #ddd;
-                    background:white;
-                    cursor:pointer;
-                    font-size:24px;
-                    font-weight:800;
-                  "
-                >
-                  ${number}
-                </button>
+              <button
+                class="number-answer"
+                data-number="${number}"
+                style="
+                  min-height:70px;
+                  border-radius:16px;
+                  border:
+                    2px solid #ddd;
+                  background:white;
+                  cursor:pointer;
+                  font-size:24px;
+                  font-weight:800;
+                "
+              >
+                ${number}
+              </button>
 
-              `
-            )
+            `)
             .join("")}
 
         </div>
@@ -3024,94 +2405,82 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     $$(".number-answer")
-      .forEach(
-        button => {
+      .forEach(button => {
 
-          button.addEventListener(
-            "click",
-            () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-              pianoClick();
+            const selected =
+              Number(
+                button.dataset.number
+              );
 
 
-              const selected =
-                Number(
-                  button.dataset.number
+            if (
+              selected === target
+            ) {
+
+              correctSound();
+
+              button.style.transform =
+                "scale(1.08)";
+
+              addCoins(
+                15,
+                false
+              );
+
+              addXP(
+                35,
+                false
+              );
+
+              completeActivity();
+
+              showToast(
+                "🎉",
+                "You found the number!"
+              );
+
+              createConfetti();
+
+
+              setTimeout(
+                () =>
+                  closeModal(
+                    "gameModal"
+                  ),
+                1000
+              );
+
+            } else {
+
+              wrongSound();
+
+              button.style.opacity =
+                "0.4";
+
+              player.hearts =
+                Math.max(
+                  0,
+                  player.hearts - 1
                 );
 
+              updatePlayerUI();
 
-              if (
-                selected ===
-                target
-              ) {
-
-                correctSound();
-
-
-                button.style.transform =
-                  "scale(1.08)";
-
-
-                addCoins(
-                  15,
-                  false
-                );
-
-                addXP(
-                  35,
-                  false
-                );
-
-                completeActivity();
-
-
-                showToast(
-                  "🎉",
-                  "You found the number!"
-                );
-
-
-                createConfetti();
-
-
-                setTimeout(
-                  () =>
-                    closeModal(
-                      "gameModal"
-                    ),
-                  1000
-                );
-
-              } else {
-
-                wrongSound();
-
-
-                button.style.opacity =
-                  "0.4";
-
-
-                player.hearts =
-                  Math.max(
-                    0,
-                    player.hearts - 1
-                  );
-
-
-                updatePlayerUI();
-
-
-                showToast(
-                  "🔎",
-                  "Keep looking!"
-                );
-              }
+              showToast(
+                "🔎",
+                "Keep looking!"
+              );
 
             }
-          );
 
-        }
-      );
+          }
+        );
+
+      });
+
   }
 
 
@@ -3124,10 +2493,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const gamesSection =
       $("#games");
 
-
-    if (!gamesSection) {
-      return;
-    }
+    if (!gamesSection) return;
 
 
     const container =
@@ -3142,9 +2508,7 @@ document.addEventListener("DOMContentLoaded", () => {
       );
 
 
-    if (!container) {
-      return;
-    }
+    if (!container) return;
 
 
     const games = [
@@ -3208,156 +2572,62 @@ document.addEventListener("DOMContentLoaded", () => {
     ];
 
 
-    games.forEach(
-      game => {
+    games.forEach(game => {
 
-        if (
-          container.querySelector(
-            `[data-game="${game.game}"]`
-          )
-        ) {
-
-          return;
-        }
-
-
-        const card =
-          document.createElement(
-            "article"
-          );
-
-
-        card.className =
-          "game-card extra-game-card";
-
-
-        card.innerHTML = `
-
-          <div class="game-icon">
-            ${game.icon}
-          </div>
-
-          <h3>
-            ${game.title}
-          </h3>
-
-          <p>
-            ${game.text}
-          </p>
-
-          <button
-            class="play-button"
-            data-game="${game.game}"
-          >
-            Play
-          </button>
-
-        `;
-
-
-        container.appendChild(
-          card
-        );
-
-      }
-    );
-  }
-
-
-  /* =======================================================
-     EXTRA GAME ROUTER
-  ======================================================= */
-
-  document.addEventListener(
-    "click",
-    event => {
-
-      const button =
-        event.target.closest(
-          ".play-button[data-game]"
-        );
-
-
-      if (!button) {
+      if (
+        container.querySelector(
+          `[data-game="${game.game}"]`
+        )
+      ) {
         return;
       }
 
 
-      const game =
-        button.dataset.game;
+      const card =
+        document.createElement(
+          "article"
+        );
+
+      card.className =
+        "game-card extra-game-card";
+
+      /* Important for CSS colors */
+
+      card.dataset.game =
+        game.game;
 
 
-      if (
-        game === "spelling"
-      ) {
+      card.innerHTML = `
 
-        event.preventDefault();
+        <div class="game-icon">
+          ${game.icon}
+        </div>
 
-        startSpellingGame();
-      }
+        <h3>
+          ${game.title}
+        </h3>
 
+        <p>
+          ${game.text}
+        </p>
 
-      else if (
-        game === "counting"
-      ) {
+        <button
+          class="play-button"
+          data-game="${game.game}"
+        >
+          Play
+        </button>
 
-        event.preventDefault();
-
-        startCountingGame();
-      }
-
-
-      else if (
-        game === "shapes"
-      ) {
-
-        event.preventDefault();
-
-        startShapesGame();
-      }
+      `;
 
 
-      else if (
-        game === "animals"
-      ) {
+      container.appendChild(
+        card
+      );
 
-        event.preventDefault();
+    });
 
-        startAnimalsGame();
-      }
-
-
-      else if (
-        game === "capitals"
-      ) {
-
-        event.preventDefault();
-
-        startCapitalsGame();
-      }
-
-
-      else if (
-        game === "puzzle"
-      ) {
-
-        event.preventDefault();
-
-        startPuzzleGame();
-      }
-
-
-      else if (
-        game === "timed"
-      ) {
-
-        event.preventDefault();
-
-        startTimedGame();
-      }
-
-    }
-  );
+  }
 
 
   /* =======================================================
@@ -3372,18 +2642,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const gameContent =
       $("#gameContent");
 
-
-    if (!gameContent) {
-      return;
-    }
+    if (!gameContent) return;
 
 
     gameContent.innerHTML = `
 
       <div class="game-title">
-        <h2>
-          ${title}
-        </h2>
+        <h2>${title}</h2>
       </div>
 
       <div class="game-body">
@@ -3404,9 +2669,6 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   function startSpellingGame() {
-
-    gameStartSound();
-
 
     const words = [
 
@@ -3454,13 +2716,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     extraModal(
+
       "🔤 Spelling Star",
+
       `
 
         <div
-          style="
-            text-align:center;
-          "
+          style="text-align:center;"
         >
 
           <div
@@ -3507,22 +2769,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const input =
       $("#spellingInput");
 
-
     const check =
       $("#spellingCheck");
 
 
-    if (!check) {
-      return;
-    }
+    if (!check) return;
 
 
     check.addEventListener(
       "click",
       () => {
-
-        pianoClick();
-
 
         const answer =
           input.value
@@ -3531,8 +2787,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         if (
-          answer ===
-          item.word
+          answer === item.word
         ) {
 
           correctSound();
@@ -3549,12 +2804,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
           completeActivity();
 
-
           showToast(
             "🎉",
             "Perfect spelling!"
           );
-
 
           createConfetti();
 
@@ -3575,10 +2828,12 @@ document.addEventListener("DOMContentLoaded", () => {
             "💡",
             "Try again!"
           );
+
         }
 
       }
     );
+
   }
 
 
@@ -3587,9 +2842,6 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   function startCountingGame() {
-
-    gameStartSound();
-
 
     const count =
       Math.floor(
@@ -3619,7 +2871,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const options =
       new Set();
 
-
     options.add(
       count
     );
@@ -3636,26 +2887,23 @@ document.addEventListener("DOMContentLoaded", () => {
         ) -
         3;
 
-
-      if (
-        value > 0
-      ) {
-
+      if (value > 0) {
         options.add(
           value
         );
       }
+
     }
 
 
     extraModal(
+
       "🔢 Counting Fun",
+
       `
 
         <div
-          style="
-            text-align:center;
-          "
+          style="text-align:center;"
         >
 
           <p>
@@ -3663,11 +2911,7 @@ document.addEventListener("DOMContentLoaded", () => {
           </p>
 
           <div
-            style="
-              font-size:35px;
-              line-height:1.5;
-              word-break:break-word;
-            "
+            class="counting-items"
           >
             ${emoji.repeat(
               count
@@ -3684,21 +2928,20 @@ document.addEventListener("DOMContentLoaded", () => {
             "
           >
 
-            ${shuffle(
-              [...options]
-            )
-              .map(
-                number => `
+            ${shuffle([...options])
+              .map(number => `
 
-                  <button
-                    class="quiz-option count-answer"
-                    data-answer="${number}"
-                  >
-                    ${number}
-                  </button>
+                <button
+                  class="
+                    quiz-option
+                    count-answer
+                  "
+                  data-answer="${number}"
+                >
+                  ${number}
+                </button>
 
-                `
-              )
+              `)
               .join("")}
 
           </div>
@@ -3710,69 +2953,64 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     $$(".count-answer")
-      .forEach(
-        button => {
+      .forEach(button => {
 
-          button.addEventListener(
-            "click",
-            () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-              pianoClick();
+            if (
+              Number(
+                button.dataset.answer
+              ) === count
+            ) {
 
+              correctSound();
 
-              if (
-                Number(
-                  button.dataset.answer
-                ) === count
-              ) {
+              addCoins(
+                15,
+                false
+              );
 
-                correctSound();
+              addXP(
+                30,
+                false
+              );
 
-                addCoins(
-                  15,
-                  false
-                );
+              completeActivity();
 
-                addXP(
-                  30,
-                  false
-                );
+              showToast(
+                "🎉",
+                "Great counting!"
+              );
 
-                completeActivity();
-
-
-                showToast(
-                  "🎉",
-                  "Great counting!"
-                );
+              createConfetti();
 
 
-                createConfetti();
+              setTimeout(
+                () =>
+                  closeModal(
+                    "gameModal"
+                  ),
+                1000
+              );
 
+            } else {
 
-                setTimeout(
-                  () =>
-                    closeModal(
-                      "gameModal"
-                    ),
-                  1000
-                );
+              wrongSound();
 
-              } else {
-
-                wrongSound();
-
-                showToast(
-                  "💡",
-                  "Count again!"
-                );
-              }
+              showToast(
+                "💡",
+                "Count again!"
+              );
 
             }
-          );
 
-        }
-      );
+          }
+        );
+
+      });
+
   }
 
 
@@ -3781,9 +3019,6 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   function startShapesGame() {
-
-    gameStartSound();
-
 
     const shapes = [
 
@@ -3820,13 +3055,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     extraModal(
+
       "🔷 Shape Match",
+
       `
 
         <div
-          style="
-            text-align:center;
-          "
+          style="text-align:center;"
         >
 
           <p>
@@ -3848,26 +3083,25 @@ document.addEventListener("DOMContentLoaded", () => {
           >
 
             ${shuffle(shapes)
-              .map(
-                shape => `
+              .map(shape => `
 
-                  <button
-                    class="shape-answer"
-                    data-shape="${shape.name}"
-                    style="
-                      min-height:90px;
-                      border:2px solid #ddd;
-                      border-radius:20px;
-                      background:white;
-                      font-size:50px;
-                      cursor:pointer;
-                    "
-                  >
-                    ${shape.symbol}
-                  </button>
+                <button
+                  class="shape-answer"
+                  data-shape="${shape.name}"
+                  style="
+                    min-height:90px;
+                    border:
+                      2px solid #ddd;
+                    border-radius:20px;
+                    background:white;
+                    font-size:50px;
+                    cursor:pointer;
+                  "
+                >
+                  ${shape.symbol}
+                </button>
 
-                `
-              )
+              `)
               .join("")}
 
           </div>
@@ -3879,68 +3113,63 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     $$(".shape-answer")
-      .forEach(
-        button => {
+      .forEach(button => {
 
-          button.addEventListener(
-            "click",
-            () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-              pianoClick();
+            if (
+              button.dataset.shape ===
+              target.name
+            ) {
 
+              correctSound();
 
-              if (
-                button.dataset.shape ===
-                target.name
-              ) {
+              addCoins(
+                15,
+                false
+              );
 
-                correctSound();
+              addXP(
+                30,
+                false
+              );
 
-                addCoins(
-                  15,
-                  false
-                );
+              completeActivity();
 
-                addXP(
-                  30,
-                  false
-                );
+              showToast(
+                "🎉",
+                "Amazing shape!"
+              );
 
-                completeActivity();
-
-
-                showToast(
-                  "🎉",
-                  "Amazing shape!"
-                );
+              createConfetti();
 
 
-                createConfetti();
+              setTimeout(
+                () =>
+                  closeModal(
+                    "gameModal"
+                  ),
+                1000
+              );
 
+            } else {
 
-                setTimeout(
-                  () =>
-                    closeModal(
-                      "gameModal"
-                    ),
-                  1000
-                );
+              wrongSound();
 
-              } else {
-
-                wrongSound();
-
-                showToast(
-                  "💡",
-                  "Try another shape!"
-                );
-              }
+              showToast(
+                "💡",
+                "Try another shape!"
+              );
 
             }
-          );
 
-        }
-      );
+          }
+        );
+
+      });
+
   }
 
 
@@ -3950,69 +3179,62 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function startAnimalsGame() {
 
-    gameStartSound();
-
-
     const questions = [
 
       {
         question:
           "Which animal says Meow?",
-
         answer:
           "Cat",
-
-        options: [
-          "Cat",
-          "Dog",
-          "Cow",
-          "Horse"
-        ]
+        options:
+          [
+            "Cat",
+            "Dog",
+            "Cow",
+            "Horse"
+          ]
       },
 
       {
         question:
           "Which animal has a long trunk?",
-
         answer:
           "Elephant",
-
-        options: [
-          "Lion",
-          "Elephant",
-          "Rabbit",
-          "Fish"
-        ]
+        options:
+          [
+            "Lion",
+            "Elephant",
+            "Rabbit",
+            "Fish"
+          ]
       },
 
       {
         question:
           "Which animal gives us milk?",
-
         answer:
           "Cow",
-
-        options: [
-          "Tiger",
-          "Cow",
-          "Eagle",
-          "Snake"
-        ]
+        options:
+          [
+            "Tiger",
+            "Cow",
+            "Eagle",
+            "Snake"
+          ]
       },
 
       {
         question:
           "Which animal can fly?",
-
         answer:
           "Bird",
-
-        options: [
-          "Bird",
-          "Cow",
-          "Dog",
-          "Horse"
-        ]
+        options:
+          [
+            "Bird",
+            "Cow",
+            "Dog",
+            "Horse"
+          ]
       }
 
     ];
@@ -4028,13 +3250,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     extraModal(
+
       "🐾 Animal World",
+
       `
 
         <div
-          style="
-            text-align:center;
-          "
+          style="text-align:center;"
         >
 
           <h3>
@@ -4052,18 +3274,19 @@ document.addEventListener("DOMContentLoaded", () => {
           >
 
             ${item.options
-              .map(
-                option => `
+              .map(option => `
 
-                  <button
-                    class="quiz-option animal-answer"
-                    data-answer="${option}"
-                  >
-                    ${option}
-                  </button>
+                <button
+                  class="
+                    quiz-option
+                    animal-answer
+                  "
+                  data-answer="${option}"
+                >
+                  ${option}
+                </button>
 
-                `
-              )
+              `)
               .join("")}
 
           </div>
@@ -4075,68 +3298,63 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     $$(".animal-answer")
-      .forEach(
-        button => {
+      .forEach(button => {
 
-          button.addEventListener(
-            "click",
-            () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-              pianoClick();
+            if (
+              button.dataset.answer ===
+              item.answer
+            ) {
 
+              correctSound();
 
-              if (
-                button.dataset.answer ===
-                item.answer
-              ) {
+              addCoins(
+                15,
+                false
+              );
 
-                correctSound();
+              addXP(
+                35,
+                false
+              );
 
-                addCoins(
-                  15,
-                  false
-                );
+              completeActivity();
 
-                addXP(
-                  35,
-                  false
-                );
+              showToast(
+                "🎉",
+                "Great animal knowledge!"
+              );
 
-                completeActivity();
-
-
-                showToast(
-                  "🎉",
-                  "Great animal knowledge!"
-                );
+              createConfetti();
 
 
-                createConfetti();
+              setTimeout(
+                () =>
+                  closeModal(
+                    "gameModal"
+                  ),
+                1000
+              );
 
+            } else {
 
-                setTimeout(
-                  () =>
-                    closeModal(
-                      "gameModal"
-                    ),
-                  1000
-                );
+              wrongSound();
 
-              } else {
-
-                wrongSound();
-
-                showToast(
-                  "💡",
-                  "Not quite!"
-                );
-              }
+              showToast(
+                "💡",
+                "Not quite!"
+              );
 
             }
-          );
 
-        }
-      );
+          }
+        );
+
+      });
+
   }
 
 
@@ -4145,9 +3363,6 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   function startCapitalsGame() {
-
-    gameStartSound();
-
 
     const countries = [
 
@@ -4193,16 +3408,13 @@ document.addEventListener("DOMContentLoaded", () => {
       ];
 
 
-    const options =
+    let options =
       shuffle(
         countries.map(
           item =>
             item.capital
         )
-      ).slice(
-        0,
-        4
-      );
+      ).slice(0, 4);
 
 
     if (
@@ -4213,17 +3425,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
       options[0] =
         item.capital;
+
     }
 
 
     extraModal(
+
       "🌎 World Capitals",
+
       `
 
         <div
-          style="
-            text-align:center;
-          "
+          style="text-align:center;"
         >
 
           <h3>
@@ -4244,18 +3457,19 @@ document.addEventListener("DOMContentLoaded", () => {
           >
 
             ${shuffle(options)
-              .map(
-                capital => `
+              .map(capital => `
 
-                  <button
-                    class="quiz-option capital-answer"
-                    data-answer="${capital}"
-                  >
-                    ${capital}
-                  </button>
+                <button
+                  class="
+                    quiz-option
+                    capital-answer
+                  "
+                  data-answer="${capital}"
+                >
+                  ${capital}
+                </button>
 
-                `
-              )
+              `)
               .join("")}
 
           </div>
@@ -4267,68 +3481,63 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     $$(".capital-answer")
-      .forEach(
-        button => {
+      .forEach(button => {
 
-          button.addEventListener(
-            "click",
-            () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-              pianoClick();
+            if (
+              button.dataset.answer ===
+              item.capital
+            ) {
 
+              correctSound();
 
-              if (
-                button.dataset.answer ===
-                item.capital
-              ) {
+              addCoins(
+                20,
+                false
+              );
 
-                correctSound();
+              addXP(
+                40,
+                false
+              );
 
-                addCoins(
-                  20,
-                  false
-                );
+              completeActivity();
 
-                addXP(
-                  40,
-                  false
-                );
+              showToast(
+                "🌎",
+                "Excellent!"
+              );
 
-                completeActivity();
-
-
-                showToast(
-                  "🌎",
-                  "Excellent!"
-                );
+              createConfetti();
 
 
-                createConfetti();
+              setTimeout(
+                () =>
+                  closeModal(
+                    "gameModal"
+                  ),
+                1000
+              );
 
+            } else {
 
-                setTimeout(
-                  () =>
-                    closeModal(
-                      "gameModal"
-                    ),
-                  1000
-                );
+              wrongSound();
 
-              } else {
-
-                wrongSound();
-
-                showToast(
-                  "💡",
-                  `Answer: ${item.capital}`
-                );
-              }
+              showToast(
+                "💡",
+                `Answer: ${item.capital}`
+              );
 
             }
-          );
 
-        }
-      );
+          }
+        );
+
+      });
+
   }
 
 
@@ -4338,54 +3547,48 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function startPuzzleGame() {
 
-    gameStartSound();
-
-
     const puzzles = [
 
       {
         question:
           "I have hands but cannot clap. What am I?",
-
         answer:
           "Clock",
-
-        options: [
-          "Clock",
-          "Chair",
-          "Book",
-          "Ball"
-        ]
+        options:
+          [
+            "Clock",
+            "Chair",
+            "Book",
+            "Ball"
+          ]
       },
 
       {
         question:
           "I am yellow and shine in the sky. What am I?",
-
         answer:
           "Sun",
-
-        options: [
-          "Moon",
-          "Sun",
-          "Cloud",
-          "Star"
-        ]
+        options:
+          [
+            "Moon",
+            "Sun",
+            "Cloud",
+            "Star"
+          ]
       },
 
       {
         question:
           "I have four legs and a seat. What am I?",
-
         answer:
           "Chair",
-
-        options: [
-          "Table",
-          "Chair",
-          "Window",
-          "Door"
-        ]
+        options:
+          [
+            "Table",
+            "Chair",
+            "Window",
+            "Door"
+          ]
       }
 
     ];
@@ -4401,19 +3604,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     extraModal(
+
       "🧩 Brain Puzzle",
+
       `
 
         <div
-          style="
-            text-align:center;
-          "
+          style="text-align:center;"
         >
 
           <div
-            style="
-              font-size:60px;
-            "
+            style="font-size:60px;"
           >
             🧠
           </div>
@@ -4433,18 +3634,19 @@ document.addEventListener("DOMContentLoaded", () => {
           >
 
             ${item.options
-              .map(
-                option => `
+              .map(option => `
 
-                  <button
-                    class="quiz-option puzzle-answer"
-                    data-answer="${option}"
-                  >
-                    ${option}
-                  </button>
+                <button
+                  class="
+                    quiz-option
+                    puzzle-answer
+                  "
+                  data-answer="${option}"
+                >
+                  ${option}
+                </button>
 
-                `
-              )
+              `)
               .join("")}
 
           </div>
@@ -4456,68 +3658,63 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     $$(".puzzle-answer")
-      .forEach(
-        button => {
+      .forEach(button => {
 
-          button.addEventListener(
-            "click",
-            () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-              pianoClick();
+            if (
+              button.dataset.answer ===
+              item.answer
+            ) {
 
+              correctSound();
 
-              if (
-                button.dataset.answer ===
-                item.answer
-              ) {
+              addCoins(
+                20,
+                false
+              );
 
-                correctSound();
+              addXP(
+                40,
+                false
+              );
 
-                addCoins(
-                  20,
-                  false
-                );
+              completeActivity();
 
-                addXP(
-                  40,
-                  false
-                );
+              showToast(
+                "🧠",
+                "Brain power!"
+              );
 
-                completeActivity();
-
-
-                showToast(
-                  "🧠",
-                  "Brain power!"
-                );
+              createConfetti();
 
 
-                createConfetti();
+              setTimeout(
+                () =>
+                  closeModal(
+                    "gameModal"
+                  ),
+                1000
+              );
 
+            } else {
 
-                setTimeout(
-                  () =>
-                    closeModal(
-                      "gameModal"
-                    ),
-                  1000
-                );
+              wrongSound();
 
-              } else {
-
-                wrongSound();
-
-                showToast(
-                  "💡",
-                  "Think again!"
-                );
-              }
+              showToast(
+                "💡",
+                "Think again!"
+              );
 
             }
-          );
 
-        }
-      );
+          }
+        );
+
+      });
+
   }
 
 
@@ -4525,19 +3722,14 @@ document.addEventListener("DOMContentLoaded", () => {
      TIMED GAME
   ======================================================= */
 
-  let timedInterval =
-    null;
+  let timedInterval = null;
 
 
   function startTimedGame() {
 
-    gameStartSound();
-
-
     clearInterval(
       timedInterval
     );
-
 
     let timeLeft = 60;
     let score = 0;
@@ -4551,12 +3743,10 @@ document.addEventListener("DOMContentLoaded", () => {
           Math.random() * 10
         ) + 1;
 
-
       const b =
         Math.floor(
           Math.random() * 10
         ) + 1;
-
 
       currentAnswer =
         a + b;
@@ -4564,7 +3754,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const options =
         new Set();
-
 
       options.add(
         currentAnswer
@@ -4576,26 +3765,34 @@ document.addEventListener("DOMContentLoaded", () => {
       ) {
 
         options.add(
+
           Math.max(
+
             1,
+
             currentAnswer +
-              Math.floor(
-                Math.random() * 9
-              ) -
-              4
+
+            Math.floor(
+              Math.random() * 9
+            ) -
+
+            4
+
           )
+
         );
+
       }
 
 
       extraModal(
+
         "⏱️ 60 Second Challenge",
+
         `
 
           <div
-            style="
-              text-align:center;
-            "
+            style="text-align:center;"
           >
 
             <div
@@ -4605,18 +3802,14 @@ document.addEventListener("DOMContentLoaded", () => {
               "
             >
               ⏱️
-              <span
-                id="timedTimer"
-              >
+              <span id="timedTimer">
                 ${timeLeft}
               </span>
             </div>
 
             <p>
               Score:
-              <strong
-                id="timedScore"
-              >
+              <strong id="timedScore">
                 ${score}
               </strong>
             </p>
@@ -4634,21 +3827,20 @@ document.addEventListener("DOMContentLoaded", () => {
               "
             >
 
-              ${shuffle(
-                [...options]
-              )
-                .map(
-                  option => `
+              ${shuffle([...options])
+                .map(option => `
 
-                    <button
-                      class="quiz-option timed-answer"
-                      data-answer="${option}"
-                    >
-                      ${option}
-                    </button>
+                  <button
+                    class="
+                      quiz-option
+                      timed-answer
+                    "
+                    data-answer="${option}"
+                  >
+                    ${option}
+                  </button>
 
-                  `
-                )
+                `)
                 .join("")}
 
             </div>
@@ -4660,54 +3852,51 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
       $$(".timed-answer")
-        .forEach(
-          button => {
+        .forEach(button => {
 
-            button.addEventListener(
-              "click",
-              () => {
+          button.addEventListener(
+            "click",
+            () => {
 
-                pianoClick();
-
-
-                const selected =
-                  Number(
-                    button.dataset.answer
-                  );
+              const selected =
+                Number(
+                  button.dataset.answer
+                );
 
 
-                if (
-                  selected ===
-                  currentAnswer
-                ) {
+              if (
+                selected ===
+                currentAnswer
+              ) {
 
-                  correctSound();
+                correctSound();
 
-                  score++;
+                score++;
 
-                  showToast(
-                    "⚡",
-                    "+1"
-                  );
+                showToast(
+                  "⚡",
+                  "+1"
+                );
 
-                } else {
+              } else {
 
-                  wrongSound();
+                wrongSound();
 
-                  showToast(
-                    "💡",
-                    "Wrong!"
-                  );
-                }
-
-
-                renderTimedQuestion();
+                showToast(
+                  "💡",
+                  "Wrong!"
+                );
 
               }
-            );
 
-          }
-        );
+
+              renderTimedQuestion();
+
+            }
+          );
+
+        });
+
     }
 
 
@@ -4715,40 +3904,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     timedInterval =
-      setInterval(
-        () => {
+      setInterval(() => {
 
-          timeLeft--;
-
-
-          const timer =
-            $("#timedTimer");
+        timeLeft--;
 
 
-          if (timer) {
+        const timer =
+          $("#timedTimer");
 
-            timer.textContent =
-              timeLeft;
-          }
+        if (timer) {
 
+          timer.textContent =
+            timeLeft;
 
-          if (
-            timeLeft <= 0
-          ) {
-
-            clearInterval(
-              timedInterval
-            );
+        }
 
 
-            finishTimedGame(
-              score
-            );
-          }
+        if (
+          timeLeft <= 0
+        ) {
 
-        },
-        1000
-      );
+          clearInterval(
+            timedInterval
+          );
+
+          finishTimedGame(
+            score
+          );
+
+        }
+
+      }, 1000);
+
   }
 
 
@@ -4756,23 +3943,27 @@ document.addEventListener("DOMContentLoaded", () => {
     score
   ) {
 
-    if (
-      score > 0
-    ) {
+    clearInterval(
+      timedInterval
+    );
 
-      const coins =
-        Math.min(
-          score * 3,
-          50
-        );
+    timedInterval = null;
 
 
-      const xp =
-        Math.min(
-          score * 5,
-          100
-        );
+    const coins =
+      Math.min(
+        score * 3,
+        50
+      );
 
+    const xp =
+      Math.min(
+        score * 5,
+        100
+      );
+
+
+    if (score > 0) {
 
       player.coins +=
         coins;
@@ -4780,30 +3971,27 @@ document.addEventListener("DOMContentLoaded", () => {
       player.xp +=
         xp;
 
-
       completeActivity();
-
 
       rewardSound();
 
       updatePlayerUI();
+
     }
 
 
     extraModal(
+
       "🏆 Time's Up!",
+
       `
 
         <div
-          style="
-            text-align:center;
-          "
+          style="text-align:center;"
         >
 
           <div
-            style="
-              font-size:65px;
-            "
+            style="font-size:65px;"
           >
             ⏰
           </div>
@@ -4821,10 +4009,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
           <p>
             🪙 Coins earned:
-            ${Math.min(
-              score * 3,
-              50
-            )}
+            ${coins}
           </p>
 
           <button
@@ -4848,21 +4033,1254 @@ document.addEventListener("DOMContentLoaded", () => {
 
       done.addEventListener(
         "click",
-        () => {
-
-          pianoClick();
-
+        () =>
           closeModal(
             "gameModal"
-          );
-        }
+          )
       );
+
     }
+
   }
 
 
   /* =======================================================
-     GAME BUTTONS
+     🎵 KIDS POEMS / RHYMES
+  ======================================================= */
+
+  const wonderKidsPoems = [
+
+    {
+      title:
+        "🌈 Rainbow Adventure",
+
+      emoji:
+        "🌈",
+
+      color:
+        "rainbow",
+
+      lines: [
+
+        "Rainbow bright up in the sky,",
+
+        "Seven colors way up high.",
+
+        "Red and orange, yellow too,",
+
+        "Green and blue and purple hue.",
+
+        "Smile and wave, come dance with me,",
+
+        "Rainbow friends for all to see!"
+
+      ]
+    },
+
+
+    {
+      title:
+        "🐱 Little Kitty",
+
+      emoji:
+        "🐱",
+
+      color:
+        "kitty",
+
+      lines: [
+
+        "Little kitty soft and small,",
+
+        "Chasing shadows on the wall.",
+
+        "Jumping here and running there,",
+
+        "Playing with a ball of hair.",
+
+        "When the day is nearly through,",
+
+        "Kitty dreams of stars so blue."
+
+      ]
+    },
+
+
+    {
+      title:
+        "🔢 Counting Fun",
+
+      emoji:
+        "🔢",
+
+      color:
+        "numbers",
+
+      lines: [
+
+        "One little star shines bright,",
+
+        "Two little birds take flight.",
+
+        "Three red apples in a row,",
+
+        "Four green leaves begin to grow.",
+
+        "Five small fingers wave hello,",
+
+        "Counting numbers — off we go!"
+
+      ]
+    },
+
+
+    {
+      title:
+        "🐻 Animal Friends",
+
+      emoji:
+        "🐻",
+
+      color:
+        "animals",
+
+      lines: [
+
+        "Bear says hello with a happy cheer,",
+
+        "Rabbit hops and comes so near.",
+
+        "Little birds sing in the tree,",
+
+        "Butterflies dance happily.",
+
+        "Every animal, big or small,",
+
+        "Has a special place for all."
+
+      ]
+    },
+
+
+    {
+      title:
+        "⭐ Good Morning",
+
+      emoji:
+        "☀️",
+
+      color:
+        "morning",
+
+      lines: [
+
+        "Good morning, sunshine bright,",
+
+        "Wake up happy, feel the light.",
+
+        "Brush your teeth and comb your hair,",
+
+        "Put your clothes on with great care.",
+
+        "Smile and say, Today I'll grow!",
+
+        "There are wonderful things to know!"
+
+      ]
+    },
+
+
+    {
+      title:
+        "🌙 Sleepy Little Star",
+
+      emoji:
+        "🌙",
+
+      color:
+        "bedtime",
+
+      lines: [
+
+        "Sleepy little star above,",
+
+        "Shining with a gentle love.",
+
+        "Close your eyes and rest your head,",
+
+        "Dream of flowers, blue and red.",
+
+        "Moon is watching from afar,",
+
+        "Good night, my little star."
+
+      ]
+    }
+
+  ];
+
+
+  let currentPoemIndex = 0;
+
+  let poemSpeaking = false;
+
+  let poemCompleted = false;
+
+  let poemSpeech = null;
+
+  let poemPianoTimer = null;
+
+  let poemPianoPlaying = false;
+
+
+  /* =======================================================
+     POEM CSS
+  ======================================================= */
+
+  function addPoemCSS() {
+
+    if (
+      $("#wonderKidsPoemCSS")
+    ) {
+      return;
+    }
+
+
+    const style =
+      document.createElement(
+        "style"
+      );
+
+    style.id =
+      "wonderKidsPoemCSS";
+
+
+    style.textContent = `
+
+      .poems-section {
+        padding: 80px 0;
+        background:
+          linear-gradient(
+            180deg,
+            #fffaff 0%,
+            #f7fbff 50%,
+            #fffdf4 100%
+          );
+        position: relative;
+        overflow: hidden;
+      }
+
+      .poems-section::before {
+        content: "🎵";
+        position: absolute;
+        top: 30px;
+        left: 5%;
+        font-size: 55px;
+        opacity: .12;
+        transform: rotate(-12deg);
+      }
+
+      .poems-section::after {
+        content: "⭐";
+        position: absolute;
+        right: 7%;
+        bottom: 35px;
+        font-size: 60px;
+        opacity: .12;
+        transform: rotate(12deg);
+      }
+
+      .poems-grid {
+        display: grid;
+        grid-template-columns:
+          repeat(3, minmax(0, 1fr));
+        gap: 22px;
+        margin-top: 35px;
+      }
+
+      .poem-card {
+        position: relative;
+        min-height: 300px;
+        border-radius: 26px;
+        padding: 25px;
+        overflow: hidden;
+        border: 2px solid rgba(255,255,255,.8);
+        box-shadow:
+          0 14px 35px rgba(70,75,120,.10);
+        transition:
+          transform .25s ease,
+          box-shadow .25s ease;
+      }
+
+      .poem-card:hover {
+        transform: translateY(-7px);
+        box-shadow:
+          0 20px 45px rgba(70,75,120,.16);
+      }
+
+      .poem-card::before {
+        content: "";
+        position: absolute;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: rgba(255,255,255,.35);
+        right: -35px;
+        top: -35px;
+      }
+
+      .poem-card.rainbow {
+        background:
+          linear-gradient(
+            135deg,
+            #fff0f7,
+            #eef5ff
+          );
+      }
+
+      .poem-card.kitty {
+        background:
+          linear-gradient(
+            135deg,
+            #fff5e9,
+            #fff0f8
+          );
+      }
+
+      .poem-card.numbers {
+        background:
+          linear-gradient(
+            135deg,
+            #eefaff,
+            #eef4ff
+          );
+      }
+
+      .poem-card.animals {
+        background:
+          linear-gradient(
+            135deg,
+            #effff5,
+            #fff9df
+          );
+      }
+
+      .poem-card.morning {
+        background:
+          linear-gradient(
+            135deg,
+            #fff9d9,
+            #fff0dc
+          );
+      }
+
+      .poem-card.bedtime {
+        background:
+          linear-gradient(
+            135deg,
+            #eeeaff,
+            #eaf2ff
+          );
+      }
+
+      .poem-emoji {
+        width: 75px;
+        height: 75px;
+        border-radius: 22px;
+        background: rgba(255,255,255,.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 43px;
+        margin-bottom: 17px;
+        box-shadow:
+          0 8px 20px rgba(50,50,90,.08);
+      }
+
+      .poem-card h3 {
+        margin: 0 0 8px;
+        font-size: 23px;
+        font-weight: 800;
+        color: #29314d;
+      }
+
+      .poem-card p {
+        margin: 0 0 20px;
+        color: #77809c;
+        line-height: 1.55;
+        font-size: 14px;
+      }
+
+      .poem-play-btn {
+        width: 100%;
+        border: 0;
+        min-height: 46px;
+        border-radius: 15px;
+        background: #6c63ff;
+        color: white;
+        font-family: inherit;
+        font-size: 16px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: .2s ease;
+      }
+
+      .poem-play-btn:hover {
+        transform: translateY(-2px);
+        background: #5148d8;
+      }
+
+      .poem-modal-content {
+        text-align: center;
+      }
+
+      .poem-big-emoji {
+        font-size: 70px;
+        margin-bottom: 5px;
+        animation:
+          poemBounce 1.5s
+          infinite
+          ease-in-out;
+      }
+
+      @keyframes poemBounce {
+
+        0%,100% {
+          transform:
+            translateY(0);
+        }
+
+        50% {
+          transform:
+            translateY(-8px);
+        }
+
+      }
+
+      .poem-text-box {
+        background: #f7f8ff;
+        border-radius: 22px;
+        padding: 22px;
+        margin: 15px 0 22px;
+        text-align: center;
+        border:
+          2px solid #e7e9f5;
+      }
+
+      .poem-line {
+        font-size: 19px;
+        line-height: 1.65;
+        font-weight: 600;
+        color: #29314d;
+        margin: 4px 0;
+        transition: .25s ease;
+      }
+
+      .poem-progress {
+        height: 8px;
+        background: #e7e9f5;
+        border-radius: 20px;
+        overflow: hidden;
+        margin: 20px 0 8px;
+      }
+
+      .poem-progress-fill {
+        height: 100%;
+        width: 0%;
+        background:
+          linear-gradient(
+            90deg,
+            #6c63ff,
+            #ff6fae,
+            #ffc928
+          );
+        border-radius: inherit;
+        transition:
+          width .3s ease;
+      }
+
+      .poem-status {
+        color: #77809c;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .poem-controls {
+        display: grid;
+        grid-template-columns:
+          repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 15px;
+      }
+
+      .poem-control {
+        border: 0;
+        min-height: 45px;
+        border-radius: 14px;
+        background: #f0f1ff;
+        color: #29314d;
+        font-family: inherit;
+        font-weight: 800;
+        cursor: pointer;
+        transition: .2s ease;
+      }
+
+      .poem-control:hover {
+        transform:
+          translateY(-2px);
+        background: #e3e4ff;
+      }
+
+      .poem-control.primary {
+        background: #6c63ff;
+        color: white;
+      }
+
+      @media (max-width: 900px) {
+
+        .poems-grid {
+          grid-template-columns:
+            repeat(
+              2,
+              minmax(0,1fr)
+            );
+        }
+
+      }
+
+      @media (max-width: 560px) {
+
+        .poems-section {
+          padding: 55px 0;
+        }
+
+        .poems-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .poem-card {
+          min-height: auto;
+        }
+
+        .poem-controls {
+          grid-template-columns: 1fr;
+        }
+
+        .poem-line {
+          font-size: 17px;
+        }
+
+      }
+
+    `;
+
+
+    document.head.appendChild(
+      style
+    );
+  }
+
+
+  /* =======================================================
+     CREATE POEMS SECTION
+  ======================================================= */
+
+  function createPoemsSection() {
+
+    if ($("#poems")) {
+      return;
+    }
+
+
+    const gamesSection =
+      $("#games");
+
+    if (!gamesSection) {
+      return;
+    }
+
+
+    const section =
+      document.createElement(
+        "section"
+      );
+
+    section.id =
+      "poems";
+
+    section.className =
+      "content-section poems-section";
+
+
+    section.innerHTML = `
+
+      <div class="container">
+
+        <div class="section-heading">
+
+          <div>
+
+            <span class="section-kicker">
+              🎵 READ • SING • LEARN
+            </span>
+
+            <h2>
+              Kids Poems & Rhymes
+            </h2>
+
+          </div>
+
+          <p>
+            Read, listen and sing along
+            with fun little poems!
+          </p>
+
+        </div>
+
+
+        <div class="poems-grid">
+
+          ${wonderKidsPoems
+            .map(
+              (poem, index) => {
+
+                const preview =
+                  poem.lines
+                    .slice(0, 2)
+                    .join(" ");
+
+                return `
+
+                  <article
+                    class="
+                      poem-card
+                      ${poem.color}
+                    "
+                  >
+
+                    <div
+                      class="poem-emoji"
+                    >
+                      ${poem.emoji}
+                    </div>
+
+                    <h3>
+                      ${poem.title}
+                    </h3>
+
+                    <p>
+                      ${preview}
+                    </p>
+
+                    <button
+                      class="poem-play-btn"
+                      data-poem-index="${index}"
+                    >
+                      ▶️ Play Poem
+                    </button>
+
+                  </article>
+
+                `;
+
+              }
+            )
+            .join("")}
+
+        </div>
+
+      </div>
+
+    `;
+
+
+    gamesSection.parentNode.insertBefore(
+      section,
+      gamesSection
+    );
+
+  }
+
+
+  /* =======================================================
+     OPEN POEM
+  ======================================================= */
+
+  function openPoem(index) {
+
+    currentPoemIndex =
+      index;
+
+    const poem =
+      wonderKidsPoems[
+        currentPoemIndex
+      ];
+
+    if (!poem) return;
+
+
+    stopPoemAudio();
+
+    poemCompleted =
+      false;
+
+
+    const linesHTML =
+      poem.lines
+        .map(
+          line => `
+
+            <div
+              class="poem-line"
+            >
+              ${line}
+            </div>
+
+          `
+        )
+        .join("");
+
+
+    const content = `
+
+      <div
+        class="poem-modal-content"
+      >
+
+        <div
+          class="poem-big-emoji"
+        >
+          ${poem.emoji}
+        </div>
+
+        <h2>
+          ${poem.title}
+        </h2>
+
+        <div
+          class="poem-text-box"
+        >
+          ${linesHTML}
+        </div>
+
+        <div
+          class="poem-progress"
+        >
+          <div
+            id="poemProgressFill"
+            class="poem-progress-fill"
+          ></div>
+        </div>
+
+        <div
+          id="poemStatus"
+          class="poem-status"
+        >
+          Ready to sing! 🎵
+        </div>
+
+        <div
+          class="poem-controls"
+        >
+
+          <button
+            id="poemReadBtn"
+            class="
+              poem-control
+              primary
+            "
+          >
+            🔊 Read Aloud
+          </button>
+
+          <button
+            id="poemMusicBtn"
+            class="poem-control"
+          >
+            🎹 Piano
+          </button>
+
+          <button
+            id="poemNextBtn"
+            class="poem-control"
+          >
+            ⏭️ Next
+          </button>
+
+        </div>
+
+      </div>
+
+    `;
+
+
+    openGameModal(
+      poem.title,
+      content
+    );
+
+
+    setupPoemControls();
+  }
+
+
+  /* =======================================================
+     POEM CONTROLS
+  ======================================================= */
+
+  function setupPoemControls() {
+
+    const readBtn =
+      $("#poemReadBtn");
+
+    const musicBtn =
+      $("#poemMusicBtn");
+
+    const nextBtn =
+      $("#poemNextBtn");
+
+
+    if (readBtn) {
+
+      readBtn.addEventListener(
+        "click",
+        togglePoemSpeech
+      );
+
+    }
+
+
+    if (musicBtn) {
+
+      musicBtn.addEventListener(
+        "click",
+        togglePoemPiano
+      );
+
+    }
+
+
+    if (nextBtn) {
+
+      nextBtn.addEventListener(
+        "click",
+        nextPoem
+      );
+
+    }
+
+  }
+
+
+  /* =======================================================
+     READ ALOUD
+  ======================================================= */
+
+  function togglePoemSpeech() {
+
+    if (
+      !(
+        "speechSynthesis"
+        in window
+      )
+    ) {
+
+      showToast(
+        "🔊",
+        "Voice reading is not supported."
+      );
+
+      return;
+    }
+
+
+    if (poemSpeaking) {
+
+      window.speechSynthesis.cancel();
+
+      poemSpeaking =
+        false;
+
+
+      const btn =
+        $("#poemReadBtn");
+
+      if (btn) {
+
+        btn.textContent =
+          "🔊 Read Aloud";
+
+      }
+
+      return;
+    }
+
+
+    const poem =
+      wonderKidsPoems[
+        currentPoemIndex
+      ];
+
+    if (!poem) return;
+
+
+    window.speechSynthesis.cancel();
+
+
+    poemSpeech =
+      new SpeechSynthesisUtterance(
+        poem.lines.join(" ")
+      );
+
+
+    poemSpeech.rate =
+      0.82;
+
+    poemSpeech.pitch =
+      1.15;
+
+    poemSpeech.volume =
+      1;
+
+
+    poemSpeech.onstart =
+      () => {
+
+        poemSpeaking =
+          true;
+
+
+        const btn =
+          $("#poemReadBtn");
+
+        if (btn) {
+
+          btn.textContent =
+            "⏸️ Stop Reading";
+
+        }
+
+
+        showToast(
+          "🔊",
+          "Poem is reading..."
+        );
+
+      };
+
+
+    poemSpeech.onend =
+      () => {
+
+        poemSpeaking =
+          false;
+
+
+        const btn =
+          $("#poemReadBtn");
+
+        if (btn) {
+
+          btn.textContent =
+            "🔊 Read Aloud";
+
+        }
+
+
+        completePoem();
+
+      };
+
+
+    window.speechSynthesis.speak(
+      poemSpeech
+    );
+
+  }
+
+
+  /* =======================================================
+     POEM PIANO
+  ======================================================= */
+
+  function togglePoemPiano() {
+
+    if (
+      poemPianoPlaying
+    ) {
+
+      stopPoemPiano();
+
+    } else {
+
+      startPoemPiano();
+
+    }
+
+  }
+
+
+  function startPoemPiano() {
+
+    stopPoemPiano();
+
+    poemPianoPlaying =
+      true;
+
+
+    const musicBtn =
+      $("#poemMusicBtn");
+
+    if (musicBtn) {
+
+      musicBtn.textContent =
+        "⏹️ Stop Piano";
+
+    }
+
+
+    const melody = [
+
+      "C4",
+      "E4",
+      "G4",
+      "E4",
+
+      "F4",
+      "A4",
+      "G4",
+      "E4",
+
+      "C4",
+      "D4",
+      "E4",
+      "G4",
+
+      "C5",
+      "G4",
+      "E4",
+      "C4"
+
+    ];
+
+
+    let index = 0;
+
+
+    function playNextNote() {
+
+      if (
+        !poemPianoPlaying
+      ) {
+        return;
+      }
+
+
+      const note =
+        pianoNotes[
+          melody[index]
+        ];
+
+
+      if (note) {
+
+        playPianoNote(
+          note,
+          0.58,
+          0.045
+        );
+
+      }
+
+
+      index++;
+
+
+      if (
+        index >=
+        melody.length
+      ) {
+
+        index = 0;
+
+      }
+
+
+      poemPianoTimer =
+        setTimeout(
+          playNextNote,
+          620
+        );
+
+    }
+
+
+    playNextNote();
+
+
+    showToast(
+      "🎹",
+      "Piano music started!"
+    );
+
+  }
+
+
+  function stopPoemPiano() {
+
+    poemPianoPlaying =
+      false;
+
+
+    clearTimeout(
+      poemPianoTimer
+    );
+
+
+    poemPianoTimer =
+      null;
+
+
+    const musicBtn =
+      $("#poemMusicBtn");
+
+
+    if (musicBtn) {
+
+      musicBtn.textContent =
+        "🎹 Piano";
+
+    }
+
+  }
+
+
+  function stopPoemAudio() {
+
+    stopPoemPiano();
+
+
+    if (
+      "speechSynthesis"
+      in window
+    ) {
+
+      window.speechSynthesis.cancel();
+
+    }
+
+
+    poemSpeaking =
+      false;
+
+  }
+
+
+  function nextPoem() {
+
+    stopPoemAudio();
+
+
+    currentPoemIndex++;
+
+
+    if (
+      currentPoemIndex >=
+      wonderKidsPoems.length
+    ) {
+
+      currentPoemIndex =
+        0;
+
+    }
+
+
+    openPoem(
+      currentPoemIndex
+    );
+
+  }
+
+
+  function completePoem() {
+
+    if (
+      poemCompleted
+    ) {
+      return;
+    }
+
+
+    poemCompleted =
+      true;
+
+
+    addCoins(
+      10,
+      false
+    );
+
+    addXP(
+      20,
+      false
+    );
+
+    completeActivity();
+
+    createConfetti();
+
+
+    showToast(
+      "🎵",
+      "Wonderful! +10 coins +20 XP"
+    );
+
+  }
+
+
+  /* =======================================================
+     POEM BUTTON ROUTER
+  ======================================================= */
+
+  document.addEventListener(
+    "click",
+    event => {
+
+      const button =
+        event.target.closest(
+          ".poem-play-btn"
+        );
+
+      if (!button) return;
+
+
+      const index =
+        Number(
+          button.dataset.poemIndex
+        );
+
+
+      openPoem(index);
+
+    }
+  );
+
+
+  /* =======================================================
+     INITIALIZE POEMS
+  ======================================================= */
+
+  function initializePoems() {
+
+    addPoemCSS();
+
+    createPoemsSection();
+
+  }
+
+
+  /* =======================================================
+     GAME BUTTON ROUTER
   ======================================================= */
 
   document.addEventListener(
@@ -4874,24 +5292,18 @@ document.addEventListener("DOMContentLoaded", () => {
           ".play-button[data-game]"
         );
 
-
-      if (!button) {
-        return;
-      }
+      if (!button) return;
 
 
       const game =
         button.dataset.game;
 
 
-      /* 🎹 Play game-start piano */
-
-      gameStartSound();
-
-
       if (
         game === "memory"
       ) {
+
+        event.preventDefault();
 
         startMemoryGame();
 
@@ -4900,6 +5312,8 @@ document.addEventListener("DOMContentLoaded", () => {
       else if (
         game === "quiz"
       ) {
+
+        event.preventDefault();
 
         startQuiz(
           "general"
@@ -4911,6 +5325,8 @@ document.addEventListener("DOMContentLoaded", () => {
         game === "word"
       ) {
 
+        event.preventDefault();
+
         startWordGame();
 
       }
@@ -4918,6 +5334,8 @@ document.addEventListener("DOMContentLoaded", () => {
       else if (
         game === "mathgame"
       ) {
+
+        event.preventDefault();
 
         startMathGame();
 
@@ -4927,6 +5345,8 @@ document.addEventListener("DOMContentLoaded", () => {
         game === "color"
       ) {
 
+        event.preventDefault();
+
         startColorGame();
 
       }
@@ -4935,7 +5355,79 @@ document.addEventListener("DOMContentLoaded", () => {
         game === "number"
       ) {
 
+        event.preventDefault();
+
         startNumberGame();
+
+      }
+
+      else if (
+        game === "spelling"
+      ) {
+
+        event.preventDefault();
+
+        startSpellingGame();
+
+      }
+
+      else if (
+        game === "counting"
+      ) {
+
+        event.preventDefault();
+
+        startCountingGame();
+
+      }
+
+      else if (
+        game === "shapes"
+      ) {
+
+        event.preventDefault();
+
+        startShapesGame();
+
+      }
+
+      else if (
+        game === "animals"
+      ) {
+
+        event.preventDefault();
+
+        startAnimalsGame();
+
+      }
+
+      else if (
+        game === "capitals"
+      ) {
+
+        event.preventDefault();
+
+        startCapitalsGame();
+
+      }
+
+      else if (
+        game === "puzzle"
+      ) {
+
+        event.preventDefault();
+
+        startPuzzleGame();
+
+      }
+
+      else if (
+        game === "timed"
+      ) {
+
+        event.preventDefault();
+
+        startTimedGame();
 
       }
 
@@ -4956,21 +5448,15 @@ document.addEventListener("DOMContentLoaded", () => {
           "[data-quiz]"
         );
 
-
-      if (!button) {
-        return;
-      }
+      if (!button) return;
 
 
       event.preventDefault();
 
-
-      pianoClick();
-
-
       startQuiz(
         button.dataset.quiz
       );
+
     }
   );
 
@@ -4989,26 +5475,26 @@ document.addEventListener("DOMContentLoaded", () => {
       "click",
       () => {
 
-        pianoClick();
-
-
         const learn =
           $("#learn");
-
 
         if (learn) {
 
           learn.scrollIntoView({
-            behavior: "smooth"
+            behavior:
+              "smooth"
           });
+
         }
+
       }
     );
+
   }
 
 
   /* =======================================================
-     DAILY MISSION BUTTON
+     DAILY MISSION
   ======================================================= */
 
   const challengeBtn =
@@ -5021,14 +5507,9 @@ document.addEventListener("DOMContentLoaded", () => {
       "click",
       () => {
 
-        pianoClick();
-
-
         if (
           player.dailyProgress >= 3
         ) {
-
-          rewardSound();
 
           showToast(
             "🏆",
@@ -5036,14 +5517,17 @@ document.addEventListener("DOMContentLoaded", () => {
           );
 
           return;
+
         }
 
 
         startQuiz(
           "general"
         );
+
       }
     );
+
   }
 
 
@@ -5052,82 +5536,73 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   $$(".nav-link")
-    .forEach(
-      link => {
+    .forEach(link => {
 
-        link.addEventListener(
-          "click",
-          () => {
+      link.addEventListener(
+        "click",
+        () => {
 
-            pianoClick();
-
-
-            $$(".nav-link")
-              .forEach(
-                item =>
-                  item.classList.remove(
-                    "active"
-                  )
-              );
-
-
-            link.classList.add(
-              "active"
+          $$(".nav-link")
+            .forEach(item =>
+              item.classList.remove(
+                "active"
+              )
             );
-          }
-        );
 
-      }
-    );
+          link.classList.add(
+            "active"
+          );
+
+        }
+      );
+
+    });
 
 
   $$('a[href^="#"]')
-    .forEach(
-      link => {
+    .forEach(link => {
 
-        link.addEventListener(
-          "click",
-          event => {
+      link.addEventListener(
+        "click",
+        event => {
 
-            const id =
-              link.getAttribute(
-                "href"
-              );
+          const id =
+            link.getAttribute(
+              "href"
+            );
 
-
-            if (
-              !id ||
-              id === "#"
-            ) {
-
-              return;
-            }
-
-
-            const target =
-              document.querySelector(
-                id
-              );
-
-
-            if (!target) {
-              return;
-            }
-
-
-            event.preventDefault();
-
-
-            target.scrollIntoView({
-              behavior: "smooth",
-              block: "start"
-            });
-
+          if (
+            !id ||
+            id === "#"
+          ) {
+            return;
           }
-        );
 
-      }
-    );
+
+          const target =
+            document.querySelector(
+              id
+            );
+
+          if (!target) {
+            return;
+          }
+
+
+          event.preventDefault();
+
+
+          target.scrollIntoView({
+            behavior:
+              "smooth",
+            block:
+              "start"
+          });
+
+        }
+      );
+
+    });
 
 
   /* =======================================================
@@ -5153,7 +5628,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (
       $("#wonderKidsMobileCSS")
     ) {
-
       return;
     }
 
@@ -5163,61 +5637,52 @@ document.addEventListener("DOMContentLoaded", () => {
         "style"
       );
 
-
     style.id =
       "wonderKidsMobileCSS";
 
 
     style.textContent = `
 
-      /* EXTRA GAMES */
-
       .extra-game-card {
         min-height: 240px;
       }
-
-
-      /* GAME CONTENT */
 
       .game-body {
         max-width: 100%;
       }
 
-
-      /* MOBILE */
+      .game-icon {
+        font-size: 52px;
+        margin-bottom: 12px;
+      }
 
       @media (max-width: 768px) {
 
         .games-grid {
           grid-template-columns:
-            repeat(2, minmax(0, 1fr))
-          !important;
+            repeat(2,minmax(0,1fr))
+            !important;
 
           gap: 14px !important;
         }
-
 
         .game-card {
           min-width: 0;
           padding: 16px !important;
         }
 
-
         .game-card h3 {
           font-size: 17px !important;
         }
-
 
         .game-card p {
           font-size: 13px !important;
         }
 
-
         .play-button {
           width: 100%;
           min-height: 44px;
         }
-
 
         .modal-card {
           width:
@@ -5229,10 +5694,10 @@ document.addEventListener("DOMContentLoaded", () => {
           overflow-y: auto;
         }
 
-
         .quiz-options {
           grid-template-columns:
-            1fr 1fr !important;
+            1fr 1fr
+            !important;
         }
 
       }
@@ -5242,35 +5707,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
         .games-grid {
           grid-template-columns:
-            1fr !important;
+            1fr
+            !important;
         }
-
 
         .quiz-options {
           grid-template-columns:
-            1fr !important;
+            1fr
+            !important;
         }
-
 
         .modal-card {
           width:
             calc(100% - 16px)
             !important;
 
-          padding: 16px
-            !important;
+          padding:
+            16px !important;
         }
-
 
         .game-title h2 {
           font-size: 22px;
         }
 
-
         .game-body {
           font-size: 15px;
         }
-
 
         .play-button {
           min-height: 46px;
@@ -5278,8 +5740,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       }
 
-
-      /* COUNTING */
 
       .counting-items {
         font-size: 34px;
@@ -5290,8 +5750,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
 
-      /* SHAPES */
-
       .shape-answer {
         transition:
           transform .2s,
@@ -5300,11 +5758,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
       .shape-answer:hover {
-        transform: scale(1.04);
+        transform:
+          scale(1.04);
       }
 
-
-      /* TIMER */
 
       #timedTimer {
         display: inline-block;
@@ -5312,18 +5769,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
 
-      /* INPUT */
-
       #spellingInput {
-        margin:
-          15px auto;
-
+        margin: 15px auto;
         display: block;
-
         max-width: 320px;
-
-        box-sizing:
-          border-box;
+        box-sizing: border-box;
       }
 
     `;
@@ -5332,6 +5782,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.head.appendChild(
       style
     );
+
   }
 
 
@@ -5341,12 +5792,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   addMobileCSS();
 
+  initializePoems();
 
   setTimeout(
     addExtraGames,
     500
   );
-
 
   updatePlayerUI();
 
