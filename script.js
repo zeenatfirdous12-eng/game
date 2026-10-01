@@ -1,26 +1,33 @@
+/* =========================================================
+   WONDERKIDS - MAIN JAVASCRIPT
+   ========================================================= */
+
 "use strict";
 
 /* =========================================================
-   WONDERKIDS — MAIN APP
-========================================================= */
+   HELPERS
+   ========================================================= */
+
+const $ = (selector) => document.querySelector(selector);
+const $$ = (selector) => [...document.querySelectorAll(selector)];
 
 const STORAGE_KEY = "wonderkids_player_v2";
+
+
+/* =========================================================
+   DEFAULT PLAYER
+   ========================================================= */
 
 const defaultPlayer = {
   name: "Young Explorer",
   avatar: "🧒",
-
   coins: 420,
   hearts: 5,
-
   xp: 2680,
   level: 3,
-
   streak: 4,
-
   dailyProgress: 0,
   dailyRewardClaimed: false,
-
   quizQuestions: 0,
   completedActivities: 0,
 
@@ -32,37 +39,15 @@ const defaultPlayer = {
   }
 };
 
-
 let player = loadPlayer();
-
-let selectedAvatar = player.avatar;
-
-let currentQuiz = null;
-let currentQuizIndex = 0;
-let currentQuizScore = 0;
-
-let memoryCards = [];
-let memoryFirst = null;
-let memorySecond = null;
-let memoryLocked = false;
-let memoryMatches = 0;
-
-let currentWord = "";
-let selectedLetters = [];
 
 
 /* =========================================================
-   HELPERS
-========================================================= */
-
-const $ = (selector) => document.querySelector(selector);
-const $$ = (selector) => [...document.querySelectorAll(selector)];
-
+   LOAD / SAVE PLAYER
+   ========================================================= */
 
 function loadPlayer() {
-
   try {
-
     const saved = localStorage.getItem(STORAGE_KEY);
 
     if (!saved) {
@@ -81,900 +66,919 @@ function loadPlayer() {
     };
 
   } catch (error) {
-
-    console.warn("Could not load player:", error);
-
+    console.error("Player loading error:", error);
     return { ...defaultPlayer };
   }
 }
 
 
 function savePlayer() {
-
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(player)
-  );
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(player));
+  } catch (error) {
+    console.error("Player saving error:", error);
+  }
 }
 
 
 /* =========================================================
    PLAYER UI
-========================================================= */
+   ========================================================= */
 
 function updatePlayerUI() {
 
-  $("#coinCount").textContent = player.coins;
-  $("#heartCount").textContent = player.hearts;
+  const nameElements = [
+    $("#playerName"),
+    $("#profileName"),
+    $("#heroPlayerName")
+  ];
 
-  $("#heroName").textContent = player.name;
+  nameElements.forEach((element) => {
+    if (element) {
+      element.textContent = player.name;
+    }
+  });
 
-  $("#levelNumber").textContent = player.level;
-  $("#levelText").textContent = player.level;
 
-  $("#streakCount").textContent = player.streak;
+  const avatarElements = [
+    $("#playerAvatar"),
+    $("#profileAvatar"),
+    $("#heroAvatar")
+  ];
 
-  const xpIntoLevel = player.xp % 1000;
+  avatarElements.forEach((element) => {
+    if (element) {
+      element.textContent = player.avatar;
+    }
+  });
 
-  const xpPercent = Math.min(
-    100,
-    Math.round((xpIntoLevel / 1000) * 100)
-  );
 
-  $("#xpFill").style.width = `${xpPercent}%`;
+  const coins = $("#coinCount");
+  if (coins) {
+    coins.textContent = player.coins;
+  }
 
-  $("#xpText").textContent =
-    `${xpIntoLevel} / 1000 XP`;
 
-  const dailyPercent =
-    Math.min(100, Math.round((player.dailyProgress / 3) * 100));
+  const hearts = $("#heartCount");
+  if (hearts) {
+    hearts.textContent = player.hearts;
+  }
 
-  $("#dailyProgressText").textContent =
-    `${dailyPercent}%`;
 
-  $("#challengeFill").style.width =
-    `${dailyPercent}%`;
+  const xp = $("#xpCount");
+  if (xp) {
+    xp.textContent = player.xp;
+  }
 
-  $("#challengeCount").textContent =
-    `${Math.min(player.dailyProgress, 3)} / 3`;
 
-  $("#profileBtn").textContent =
-    player.avatar;
+  const level = $("#levelCount");
+  if (level) {
+    level.textContent = player.level;
+  }
+
+
+  const streak = $("#streakCount");
+  if (streak) {
+    streak.textContent = player.streak;
+  }
+
+
+  const progress = $("#dailyProgress");
+
+  if (progress) {
+    progress.textContent = `${Math.min(player.dailyProgress, 3)}/3`;
+  }
+
+
+  const progressBar = $("#progressBar");
+
+  if (progressBar) {
+    const percentage = Math.min(
+      (player.dailyProgress / 3) * 100,
+      100
+    );
+
+    progressBar.style.width = `${percentage}%`;
+  }
+
+
+  const xpBar = $("#xpBar");
+
+  if (xpBar) {
+
+    const currentLevelXP = player.xp % 1000;
+    const percentage = (currentLevelXP / 1000) * 100;
+
+    xpBar.style.width = `${percentage}%`;
+  }
+
 
   updateChallengeButton();
   updateBadges();
-
-  savePlayer();
 }
 
+
+/* =========================================================
+   CHALLENGE BUTTON
+   ========================================================= */
 
 function updateChallengeButton() {
 
   const button = $("#challengeBtn");
 
+  if (!button) return;
+
+
   if (player.dailyProgress >= 3) {
 
-    button.textContent = "🎉 Completed!";
-
-    button.disabled = true;
-
-    button.style.opacity = ".7";
+    button.textContent = "✓ Challenge Complete";
+    button.classList.add("completed");
 
   } else {
 
-    button.textContent = "Start Mission";
-
-    button.disabled = false;
-
-    button.style.opacity = "1";
-  }
-}
-
-
-function updateBadges() {
-
-  const brainBadge = $("#brainMasterBadge");
-  const wonderBadge = $("#wonderKidBadge");
-
-  if (player.quizQuestions >= 20) {
-
-    player.badges.brainMaster = true;
-
-    brainBadge.classList.add("unlocked");
-
-    brainBadge.querySelector("span").textContent =
-      "✓ Unlocked";
-
-  }
-
-  if (player.level >= 10) {
-
-    player.badges.wonderKid = true;
-
-    wonderBadge.classList.add("unlocked");
-
-    wonderBadge.querySelector("span").textContent =
-      "✓ Unlocked";
+    button.textContent = "Start Challenge";
+    button.classList.remove("completed");
   }
 }
 
 
 /* =========================================================
-   REWARDS
-========================================================= */
+   BADGES
+   ========================================================= */
+
+function updateBadges() {
+
+  const brainBadge = $("#brainMasterBadge");
+
+  if (brainBadge) {
+    brainBadge.classList.toggle(
+      "unlocked",
+      player.badges.brainMaster
+    );
+  }
+
+
+  const wonderBadge = $("#wonderKidBadge");
+
+  if (wonderBadge) {
+    wonderBadge.classList.toggle(
+      "unlocked",
+      player.badges.wonderKid
+    );
+  }
+}
+
+
+/* =========================================================
+   COINS
+   ========================================================= */
 
 function addCoins(amount) {
 
   player.coins += amount;
 
-  showToast(
-    "🪙",
-    `+${amount} coins!`
-  );
-
   updatePlayerUI();
+  savePlayer();
+
+  showToast(`🪙 +${amount} coins!`);
 }
 
+
+/* =========================================================
+   XP
+   ========================================================= */
 
 function addXP(amount) {
 
   player.xp += amount;
 
-  const calculatedLevel =
+  player.level =
     Math.floor(player.xp / 1000) + 1;
 
-  if (calculatedLevel > player.level) {
-
-    player.level = calculatedLevel;
-
-    showToast(
-      "🎊",
-      `LEVEL UP! You are now Level ${player.level}!`
-    );
-
-    createConfetti();
-  }
-
   updatePlayerUI();
+  savePlayer();
+
+  showToast(`⭐ +${amount} XP!`);
 }
 
+
+/* =========================================================
+   COMPLETE ACTIVITY
+   ========================================================= */
 
 function completeActivity() {
 
   player.completedActivities++;
 
   if (player.dailyProgress < 3) {
-
     player.dailyProgress++;
-
-    if (player.dailyProgress === 3 &&
-        !player.dailyRewardClaimed) {
-
-      player.dailyRewardClaimed = true;
-
-      player.coins += 50;
-
-      setTimeout(() => {
-
-        showToast(
-          "🎯",
-          "Daily Mission Complete! +50 coins!"
-        );
-
-        createConfetti();
-
-      }, 400);
-    }
   }
 
+
+  if (player.completedActivities >= 10) {
+    player.badges.brainMaster = true;
+  }
+
+
+  if (player.completedActivities >= 25) {
+    player.badges.wonderKid = true;
+  }
+
+
   updatePlayerUI();
+  savePlayer();
 }
 
 
 /* =========================================================
-   PROFILE
-========================================================= */
+   PROFILE MODAL
+   ========================================================= */
 
 function openProfile() {
 
-  $("#playerName").value =
-    player.name;
-
-  selectedAvatar =
-    player.avatar;
-
-  $$(".avatar-option").forEach(button => {
-
-    button.classList.toggle(
-      "selected",
-      button.dataset.avatar === selectedAvatar
-    );
-
-  });
-
-  openModal("profileModal");
-}
-
-
-function saveProfile() {
-
-  const name =
-    $("#playerName").value.trim();
-
-  player.name =
-    name || "Young Explorer";
-
-  player.avatar =
-    selectedAvatar;
-
-  savePlayer();
-
-  updatePlayerUI();
-
-  closeModal("profileModal");
-
-  showToast(
-    "💖",
-    "Profile saved!"
-  );
-}
-
-
-$("#profileBtn").addEventListener(
-  "click",
-  openProfile
-);
-
-
-$$(".avatar-option").forEach(button => {
-
-  button.addEventListener("click", () => {
-
-    selectedAvatar =
-      button.dataset.avatar;
-
-    $$(".avatar-option").forEach(item => {
-
-      item.classList.remove("selected");
-
-    });
-
-    button.classList.add("selected");
-  });
-
-});
-
-
-$("#saveProfile").addEventListener(
-  "click",
-  saveProfile
-);
-
-
-/* =========================================================
-   MODALS
-========================================================= */
-
-function openModal(id) {
-
-  const modal = $(`#${id}`);
+  const modal = $("#profileModal");
 
   if (!modal) return;
 
   modal.classList.add("open");
 
-  document.body.style.overflow = "hidden";
+
+  const nameInput = $("#profileNameInput");
+
+  if (nameInput) {
+    nameInput.value = player.name;
+  }
+
+
+  const avatarInput = $("#profileAvatarInput");
+
+  if (avatarInput) {
+    avatarInput.value = player.avatar;
+  }
 }
 
 
-function closeModal(id) {
+function closeProfile() {
 
-  const modal = $(`#${id}`);
+  const modal = $("#profileModal");
 
   if (!modal) return;
 
   modal.classList.remove("open");
-
-  document.body.style.overflow = "";
 }
 
 
-$$("[data-close]").forEach(button => {
-
-  button.addEventListener("click", () => {
-
-    closeModal(
-      button.dataset.close
-    );
-
-  });
-
-});
-
-
-$$(".modal-overlay").forEach(overlay => {
-
-  overlay.addEventListener("click", event => {
-
-    if (event.target === overlay) {
-
-      closeModal(overlay.id);
-    }
-
-  });
-
-});
-
-
-document.addEventListener("keydown", event => {
-
-  if (event.key === "Escape") {
-
-    $$(".modal-overlay.open").forEach(modal => {
-
-      closeModal(modal.id);
-
-    });
-
-  }
-
-});
-
-
 /* =========================================================
-   NAVIGATION
-========================================================= */
+   GAME MODAL
+   ========================================================= */
 
-$$(".nav-link").forEach(link => {
+function openGameModal(title, html) {
 
-  link.addEventListener("click", () => {
+  const modal = $("#gameModal");
+  const content = $("#gameContent");
 
-    $$(".nav-link").forEach(item =>
-      item.classList.remove("active")
-    );
-
-    link.classList.add("active");
-
-  });
-
-});
+  if (!modal || !content) return;
 
 
-/* =========================================================
-   QUIZ DATA
-========================================================= */
+  content.innerHTML = `
+    <div class="game-modal-header">
+      <h2>${title}</h2>
 
-const quizData = {
-
-  math: [
-
-    {
-      q: "What is 5 + 3?",
-      options: ["6", "7", "8", "9"],
-      answer: 2
-    },
-
-    {
-      q: "What is 10 - 4?",
-      options: ["5", "6", "7", "8"],
-      answer: 1
-    },
-
-    {
-      q: "What is 3 × 4?",
-      options: ["7", "10", "12", "14"],
-      answer: 2
-    },
-
-    {
-      q: "What is 20 ÷ 5?",
-      options: ["2", "3", "4", "5"],
-      answer: 2
-    },
-
-    {
-      q: "Which number is bigger?",
-      options: ["12", "21", "15", "18"],
-      answer: 1
-    }
-
-  ],
-
-
-  english: [
-
-    {
-      q: "Which word is an animal?",
-      options: ["Apple", "Tiger", "Chair", "Blue"],
-      answer: 1
-    },
-
-    {
-      q: "Which letter comes after C?",
-      options: ["A", "B", "D", "E"],
-      answer: 2
-    },
-
-    {
-      q: "What is the opposite of HOT?",
-      options: ["Warm", "Cold", "Big", "Fast"],
-      answer: 1
-    },
-
-    {
-      q: "Which word is spelled correctly?",
-      options: ["Appl", "Aple", "Apple", "Appel"],
-      answer: 2
-    },
-
-    {
-      q: "Which one is a color?",
-      options: ["Jump", "Purple", "Run", "Book"],
-      answer: 1
-    }
-
-  ],
-
-
-  science: [
-
-    {
-      q: "Which animal says 'Moo'?",
-      options: ["Cat", "Cow", "Dog", "Lion"],
-      answer: 1
-    },
-
-    {
-      q: "Which planet do we live on?",
-      options: ["Mars", "Earth", "Jupiter", "Venus"],
-      answer: 1
-    },
-
-    {
-      q: "What do plants need to grow?",
-      options: ["Sunlight", "Shoes", "Toys", "Books"],
-      answer: 0
-    },
-
-    {
-      q: "How many legs does a spider have?",
-      options: ["4", "6", "8", "10"],
-      answer: 2
-    },
-
-    {
-      q: "Which one is a star?",
-      options: ["Moon", "Sun", "Earth", "Mars"],
-      answer: 1
-    }
-
-  ],
-
-
-  general: [
-
-    {
-      q: "How many days are in a week?",
-      options: ["5", "6", "7", "8"],
-      answer: 2
-    },
-
-    {
-      q: "Which animal is known as the king of the jungle?",
-      options: ["Lion", "Rabbit", "Horse", "Duck"],
-      answer: 0
-    },
-
-    {
-      q: "What color is the sky on a clear day?",
-      options: ["Green", "Blue", "Pink", "Orange"],
-      answer: 1
-    },
-
-    {
-      q: "Which fruit is usually yellow?",
-      options: ["Banana", "Apple", "Grape", "Blueberry"],
-      answer: 0
-    },
-
-    {
-      q: "How many wheels does a bicycle have?",
-      options: ["1", "2", "3", "4"],
-      answer: 1
-    }
-
-  ]
-
-};
-
-
-/* =========================================================
-   QUIZ
-========================================================= */
-
-function startQuiz(category) {
-
-  currentQuiz =
-    quizData[category] || quizData.general;
-
-  currentQuizIndex = 0;
-  currentQuizScore = 0;
-
-  renderQuiz(category);
-
-  openModal("gameModal");
-}
-
-
-function renderQuiz(category) {
-
-  const question =
-    currentQuiz[currentQuizIndex];
-
-  const progress =
-    ((currentQuizIndex + 1) /
-    currentQuiz.length) * 100;
-
-  $("#gameContent").innerHTML = `
-
-    <div class="quiz-header">
-
-      <div class="game-emoji">🧠</div>
-
-      <h2>${capitalize(category)} Quiz</h2>
-
-      <div class="quiz-progress">
-        <div
-          class="quiz-progress-fill"
-          style="width:${progress}%">
-        </div>
-      </div>
-
-      <small>
-        Question ${currentQuizIndex + 1}
-        of ${currentQuiz.length}
-      </small>
-
+      <button
+        class="modal-close"
+        id="closeGameModal"
+        type="button"
+      >
+        ✕
+      </button>
     </div>
 
-    <div class="quiz-question">
-      ${question.q}
-    </div>
-
-    <div class="quiz-options">
-
-      ${question.options.map((option,index) => `
-
-        <button
-          class="quiz-option"
-          data-index="${index}">
-
-          ${option}
-
-        </button>
-
-      `).join("")}
-
+    <div class="game-body">
+      ${html}
     </div>
   `;
 
 
-  $$(".quiz-option").forEach(button => {
+  modal.classList.add("open");
 
-    button.addEventListener(
+
+  const closeButton = $("#closeGameModal");
+
+  if (closeButton) {
+    closeButton.addEventListener(
       "click",
-      () => checkQuizAnswer(
-        Number(button.dataset.index)
-      )
+      closeGameModal
     );
-
-  });
+  }
 }
 
+
+function closeGameModal() {
+
+  const modal = $("#gameModal");
+
+  if (!modal) return;
+
+  modal.classList.remove("open");
+}
+
+
+/* =========================================================
+   QUIZ DATA
+   ========================================================= */
+
+const quizData = {
+
+  math: [
+    {
+      question: "What is 5 + 3?",
+      options: ["6", "7", "8", "9"],
+      answer: "8"
+    },
+
+    {
+      question: "What is 10 - 4?",
+      options: ["4", "5", "6", "7"],
+      answer: "6"
+    },
+
+    {
+      question: "What is 3 × 4?",
+      options: ["7", "10", "12", "14"],
+      answer: "12"
+    },
+
+    {
+      question: "What is 20 ÷ 5?",
+      options: ["2", "3", "4", "5"],
+      answer: "4"
+    },
+
+    {
+      question: "Which number is bigger?",
+      options: ["12", "18", "9", "7"],
+      answer: "18"
+    }
+  ],
+
+
+  english: [
+    {
+      question: "Which word is an animal?",
+      options: ["Apple", "Tiger", "Chair", "Book"],
+      answer: "Tiger"
+    },
+
+    {
+      question: "What is the opposite of HOT?",
+      options: ["Warm", "Cold", "Big", "Fast"],
+      answer: "Cold"
+    },
+
+    {
+      question: "Which one is a fruit?",
+      options: ["Car", "Apple", "Table", "Shoe"],
+      answer: "Apple"
+    },
+
+    {
+      question: "Which word means happy?",
+      options: ["Sad", "Angry", "Joyful", "Tired"],
+      answer: "Joyful"
+    },
+
+    {
+      question: "Choose the correct spelling.",
+      options: ["Elefant", "Eliphant", "Elephant", "Elfant"],
+      answer: "Elephant"
+    }
+  ],
+
+
+  science: [
+    {
+      question: "What do plants need to grow?",
+      options: [
+        "Sunlight",
+        "Television",
+        "Shoes",
+        "Toys"
+      ],
+      answer: "Sunlight"
+    },
+
+    {
+      question: "Which planet do we live on?",
+      options: [
+        "Mars",
+        "Earth",
+        "Jupiter",
+        "Venus"
+      ],
+      answer: "Earth"
+    },
+
+    {
+      question: "What do humans breathe?",
+      options: [
+        "Water",
+        "Air",
+        "Sand",
+        "Milk"
+      ],
+      answer: "Air"
+    },
+
+    {
+      question: "Which animal lays eggs?",
+      options: [
+        "Cat",
+        "Dog",
+        "Chicken",
+        "Cow"
+      ],
+      answer: "Chicken"
+    },
+
+    {
+      question: "What gives Earth light?",
+      options: [
+        "Moon",
+        "Sun",
+        "Cloud",
+        "Starfish"
+      ],
+      answer: "Sun"
+    }
+  ],
+
+
+  general: [
+    {
+      question: "How many days are in a week?",
+      options: ["5", "6", "7", "8"],
+      answer: "7"
+    },
+
+    {
+      question: "Which color is the sky on a clear day?",
+      options: [
+        "Blue",
+        "Green",
+        "Pink",
+        "Orange"
+      ],
+      answer: "Blue"
+    },
+
+    {
+      question: "How many legs does a dog have?",
+      options: ["2", "3", "4", "6"],
+      answer: "4"
+    },
+
+    {
+      question: "Which one can fly?",
+      options: [
+        "Bird",
+        "Fish",
+        "Elephant",
+        "Cow"
+      ],
+      answer: "Bird"
+    },
+
+    {
+      question: "What do we use to tell time?",
+      options: [
+        "Clock",
+        "Spoon",
+        "Ball",
+        "Pillow"
+      ],
+      answer: "Clock"
+    }
+  ]
+};
+
+
+/* =========================================================
+   QUIZ VARIABLES
+   ========================================================= */
+
+let currentQuiz = [];
+let currentQuizIndex = 0;
+let currentQuizScore = 0;
+let currentQuizCategory = "general";
+
+
+/* =========================================================
+   START QUIZ
+   ========================================================= */
+
+function startQuiz(category = "general") {
+
+  if (!quizData[category]) {
+    category = "general";
+  }
+
+
+  currentQuizCategory = category;
+
+  currentQuiz = [...quizData[category]];
+
+  currentQuizIndex = 0;
+  currentQuizScore = 0;
+
+
+  renderQuiz();
+}
+
+
+/* =========================================================
+   RENDER QUIZ
+   ========================================================= */
+
+function renderQuiz() {
+
+  if (
+    currentQuizIndex >= currentQuiz.length
+  ) {
+    showQuizResult();
+    return;
+  }
+
+
+  const question =
+    currentQuiz[currentQuizIndex];
+
+
+  const progress =
+    ((currentQuizIndex + 1) /
+      currentQuiz.length) *
+    100;
+
+
+  const optionsHTML =
+    question.options
+      .map(
+        (option, index) => `
+          <button
+            class="quiz-option"
+            type="button"
+            data-answer-index="${index}"
+          >
+            ${option}
+          </button>
+        `
+      )
+      .join("");
+
+
+  openGameModal(
+    `🧠 ${capitalize(currentQuizCategory)} Quiz`,
+    `
+      <div class="quiz-container">
+
+        <div class="quiz-progress">
+          <div
+            class="quiz-progress-bar"
+            style="width:${progress}%"
+          ></div>
+        </div>
+
+        <div class="quiz-question-number">
+          Question ${currentQuizIndex + 1}
+          of ${currentQuiz.length}
+        </div>
+
+        <h3 class="quiz-question">
+          ${question.question}
+        </h3>
+
+        <div class="quiz-options">
+          ${optionsHTML}
+        </div>
+
+      </div>
+    `
+  );
+
+
+  $$(".quiz-option").forEach(
+    (button) => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          const index =
+            Number(
+              button.dataset.answerIndex
+            );
+
+          checkQuizAnswer(index);
+        }
+      );
+
+    }
+  );
+}
+
+
+/* =========================================================
+   CHECK QUIZ
+   ========================================================= */
 
 function checkQuizAnswer(index) {
 
   const question =
     currentQuiz[currentQuizIndex];
 
+
   const buttons =
     $$(".quiz-option");
 
-  buttons.forEach(button =>
-    button.disabled = true
+
+  buttons.forEach(
+    (button) => {
+      button.disabled = true;
+    }
   );
 
 
-  if (index === question.answer) {
+  const selected =
+    question.options[index];
 
-    buttons[index].classList.add("correct");
+
+  if (selected === question.answer) {
 
     currentQuizScore++;
 
-    showToast(
-      "🎉",
-      "Amazing! Correct answer!"
+    buttons[index]?.classList.add(
+      "correct"
     );
+
+    showToast("🎉 Correct answer!");
 
   } else {
 
-    buttons[index].classList.add("wrong");
+    buttons[index]?.classList.add(
+      "wrong"
+    );
 
-    buttons[question.answer]
-      .classList.add("correct");
+
+    const correctIndex =
+      question.options.indexOf(
+        question.answer
+      );
+
+
+    if (correctIndex >= 0) {
+      buttons[correctIndex]?.classList.add(
+        "correct"
+      );
+    }
+
 
     showToast(
-      "💡",
-      "Almost! Keep trying!"
+      `💡 Correct answer: ${question.answer}`
     );
   }
+
+
+  player.quizQuestions++;
+
+  savePlayer();
 
 
   setTimeout(() => {
 
     currentQuizIndex++;
 
-    if (
-      currentQuizIndex >=
-      currentQuiz.length
-    ) {
+    renderQuiz();
 
-      showQuizResult();
-
-    } else {
-
-      renderQuiz(
-        findCurrentCategory()
-      );
-
-    }
-
-  }, 750);
+  }, 850);
 }
 
 
-function findCurrentCategory() {
-
-  for (const category in quizData) {
-
-    if (quizData[category] === currentQuiz) {
-      return category;
-    }
-
-  }
-
-  return "general";
-}
-
+/* =========================================================
+   QUIZ RESULT
+   ========================================================= */
 
 function showQuizResult() {
 
-  const total =
-    currentQuiz.length;
+  const total = currentQuiz.length;
 
-  const score =
-    currentQuizScore;
-
-  const coins =
-    score * 6;
-
-  const xp =
-    score * 12;
-
-  player.quizQuestions += total;
-
-  addCoins(coins);
-  addXP(xp);
-
-  completeActivity();
+  const score = currentQuizScore;
 
   const percentage =
     Math.round((score / total) * 100);
 
-  let emoji = "🌟";
-  let message = "Great effort!";
+
+  let emoji = "💪";
+  let message = "Keep practicing!";
+
 
   if (percentage >= 80) {
 
     emoji = "🏆";
-    message = "AMAZING! You are a WonderKid!";
+    message = "Amazing work!";
 
-  } else if (percentage >= 50) {
+  } else if (percentage >= 60) {
 
-    emoji = "🎉";
-    message = "Great job! Keep learning!";
+    emoji = "🌟";
+    message = "Great job!";
 
-  } else {
+  } else if (percentage >= 40) {
 
-    emoji = "💡";
-    message = "Keep trying! You are learning!";
+    emoji = "😊";
+    message = "Good try!";
   }
 
 
-  $("#gameContent").innerHTML = `
+  const rewardCoins =
+    score * 10;
 
-    <div class="quiz-result">
+  const rewardXP =
+    score * 20;
 
-      <div class="result-emoji">
-        ${emoji}
+
+  addCoins(rewardCoins);
+  addXP(rewardXP);
+
+  completeActivity();
+
+
+  openGameModal(
+    "🎉 Quiz Complete!",
+    `
+      <div class="result-screen">
+
+        <div class="result-emoji">
+          ${emoji}
+        </div>
+
+        <h2>${message}</h2>
+
+        <p class="result-score">
+          You scored
+          <strong>${score}/${total}</strong>
+        </p>
+
+        <div class="result-rewards">
+
+          <div>
+            <span>🪙</span>
+            +${rewardCoins}
+          </div>
+
+          <div>
+            <span>⭐</span>
+            +${rewardXP}
+          </div>
+
+        </div>
+
+        <button
+          class="primary-btn"
+          id="quizDoneBtn"
+          type="button"
+        >
+          Continue
+        </button>
+
       </div>
-
-      <h2>${message}</h2>
-
-      <div class="result-score">
-        ${score}/${total}
-      </div>
-
-      <p>
-        You got ${percentage}% correct!
-      </p>
-
-      <div class="result-rewards">
-
-        <span class="reward-pill">
-          🪙 +${coins} Coins
-        </span>
-
-        <span class="reward-pill">
-          ⭐ +${xp} XP
-        </span>
-
-      </div>
-
-      <button
-        class="btn btn-primary full-btn"
-        id="quizDone">
-
-        Continue 🚀
-
-      </button>
-
-    </div>
-  `;
-
-
-  $("#quizDone").addEventListener(
-    "click",
-    () => closeModal("gameModal")
+    `
   );
 
-  createConfetti();
-}
 
+  const doneButton =
+    $("#quizDoneBtn");
 
-function getQuizMessage(score,total) {
-
-  const percentage =
-    (score / total) * 100;
-
-  if (percentage >= 80)
-    return "Amazing!";
-
-  if (percentage >= 50)
-    return "Great job!";
-
-  return "Keep trying!";
-}
-
-
-function capitalize(value) {
-
-  return value.charAt(0).toUpperCase() +
-    value.slice(1);
-}
-
-
-/* =========================================================
-   SUBJECT BUTTONS
-========================================================= */
-
-$$("[data-quiz]").forEach(button => {
-
-  button.addEventListener("click", () => {
-
-    startQuiz(
-      button.dataset.quiz
+  if (doneButton) {
+    doneButton.addEventListener(
+      "click",
+      closeGameModal
     );
-
-  });
-
-});
+  }
+}
 
 
 /* =========================================================
-   QUICK QUIZ
-========================================================= */
+   FIND QUIZ CATEGORY
+   ========================================================= */
 
-$$("[data-game='quiz']").forEach(button => {
+function findCurrentCategory() {
 
-  button.addEventListener("click", () => {
-
-    startQuiz("general");
-
-  });
-
-});
+  return currentQuizCategory || "general";
+}
 
 
 /* =========================================================
-   MEMORY MATCH
-========================================================= */
+   MEMORY GAME
+   ========================================================= */
+
+const memoryEmojis = [
+  "🍎",
+  "🍎",
+  "🐶",
+  "🐶",
+  "🚀",
+  "🚀",
+  "🌈",
+  "🌈",
+  "⭐",
+  "⭐",
+  "🦋",
+  "🦋"
+];
+
+
+let memoryCards = [];
+let memoryFlipped = [];
+let memoryMatches = 0;
+let memoryLocked = false;
+
 
 function startMemoryGame() {
 
-  const symbols = [
-    "🍎",
-    "⭐",
-    "🚀",
-    "🐼",
-    "🌈",
-    "🦄"
-  ];
-
   memoryCards =
-    [...symbols,...symbols]
-      .sort(() => Math.random() - .5);
+    [...memoryEmojis]
+      .sort(
+        () => Math.random() - 0.5
+      );
 
-  memoryFirst = null;
-  memorySecond = null;
-  memoryLocked = false;
+
+  memoryFlipped = [];
   memoryMatches = 0;
+  memoryLocked = false;
+
 
   renderMemoryGame();
-
-  openModal("gameModal");
 }
 
 
 function renderMemoryGame() {
 
-  $("#gameContent").innerHTML = `
+  const cardsHTML =
+    memoryCards
+      .map(
+        (emoji, index) => `
+          <button
+            class="memory-card"
+            type="button"
+            data-memory-index="${index}"
+          >
+            <span class="memory-front">
+              ?
+            </span>
 
-    <div class="memory-title">
-
-      <div class="game-emoji">🧠</div>
-
-      <h2>Memory Match</h2>
-
-      <p>
-        Find all matching pairs!
-      </p>
-
-    </div>
-
-    <div class="memory-board">
-
-      ${memoryCards.map((symbol,index) => `
-
-        <button
-          class="memory-card"
-          data-index="${index}">
-
-          <span class="back">?</span>
-
-          <span class="front">
-            ${symbol}
-          </span>
-
-        </button>
-
-      `).join("")}
-
-    </div>
-
-  `;
-
-
-  $$(".memory-card").forEach(card => {
-
-    card.addEventListener(
-      "click",
-      () => flipMemoryCard(
-        Number(card.dataset.index)
+            <span class="memory-back">
+              ${emoji}
+            </span>
+          </button>
+        `
       )
-    );
+      .join("");
 
-  });
+
+  openGameModal(
+    "🧩 Memory Match",
+    `
+      <div class="memory-game">
+
+        <p>
+          Find all matching pairs!
+        </p>
+
+        <div class="memory-grid">
+          ${cardsHTML}
+        </div>
+
+      </div>
+    `
+  );
+
+
+  $$(".memory-card").forEach(
+    (card) => {
+
+      card.addEventListener(
+        "click",
+        () => {
+
+          flipMemoryCard(
+            Number(
+              card.dataset.memoryIndex
+            )
+          );
+
+        }
+      );
+
+    }
+  );
 }
 
 
@@ -982,51 +986,62 @@ function flipMemoryCard(index) {
 
   if (memoryLocked) return;
 
-  const card =
-    $(`.memory-card[data-index="${index}"]`);
-
-  if (!card) return;
-
   if (
-    card.classList.contains("flipped") ||
-    card.classList.contains("matched")
+    memoryFlipped.includes(index)
   ) {
     return;
   }
+
+
+  const cards =
+    $$(".memory-card");
+
+
+  const card =
+    cards[index];
+
+
+  if (!card) return;
 
 
   card.classList.add("flipped");
 
-  if (memoryFirst === null) {
+  memoryFlipped.push(index);
 
-    memoryFirst = index;
+
+  if (memoryFlipped.length < 2) {
     return;
   }
 
 
-  memorySecond = index;
-
   memoryLocked = true;
 
-  const firstCard =
-    $(`.memory-card[data-index="${memoryFirst}"]`);
 
-  const secondCard =
-    $(`.memory-card[data-index="${memorySecond}"]`);
+  const first =
+    memoryFlipped[0];
+
+  const second =
+    memoryFlipped[1];
 
 
   if (
-    memoryCards[memoryFirst] ===
-    memoryCards[memorySecond]
+    memoryCards[first] ===
+    memoryCards[second]
   ) {
 
-    firstCard.classList.add("matched");
-    secondCard.classList.add("matched");
+    cards[first]?.classList.add(
+      "matched"
+    );
+
+    cards[second]?.classList.add(
+      "matched"
+    );
+
 
     memoryMatches++;
 
-    memoryFirst = null;
-    memorySecond = null;
+    memoryFlipped = [];
+
     memoryLocked = false;
 
 
@@ -1034,90 +1049,99 @@ function flipMemoryCard(index) {
 
       setTimeout(() => {
 
-        addCoins(20);
-        addXP(30);
+        addCoins(50);
+        addXP(100);
         completeActivity();
 
-        $("#gameContent").innerHTML = `
+        openGameModal(
+          "🏆 Amazing!",
+          `
+            <div class="result-screen">
 
-          <div class="quiz-result">
+              <div class="result-emoji">
+                🧠✨
+              </div>
 
-            <div class="result-emoji">
-              🏆
+              <h2>All Pairs Found!</h2>
+
+              <p>
+                You completed the Memory Match!
+              </p>
+
+              <div class="result-rewards">
+
+                <div>
+                  🪙 +50
+                </div>
+
+                <div>
+                  ⭐ +100 XP
+                </div>
+
+              </div>
+
+              <button
+                class="primary-btn"
+                id="memoryDoneBtn"
+                type="button"
+              >
+                Continue
+              </button>
+
             </div>
+          `
+        );
 
-            <h2>Memory Master!</h2>
 
-            <p>
-              You found every pair!
-            </p>
+        $("#memoryDoneBtn")
+          ?.addEventListener(
+            "click",
+            closeGameModal
+          );
 
-            <div class="result-rewards">
-
-              <span class="reward-pill">
-                🪙 +20 Coins
-              </span>
-
-              <span class="reward-pill">
-                ⭐ +30 XP
-              </span>
-
-            </div>
-
-            <button
-              class="btn btn-primary full-btn"
-              id="memoryDone">
-
-              Awesome! 🎉
-
-            </button>
-
-          </div>
-
-        `;
-
-        $("#memoryDone").onclick =
-          () => closeModal("gameModal");
-
-        createConfetti();
-
-      },500);
+      }, 400);
     }
 
   } else {
 
     setTimeout(() => {
 
-      firstCard.classList.remove("flipped");
-      secondCard.classList.remove("flipped");
+      cards[first]?.classList.remove(
+        "flipped"
+      );
 
-      memoryFirst = null;
-      memorySecond = null;
+      cards[second]?.classList.remove(
+        "flipped"
+      );
+
+
+      memoryFlipped = [];
+
       memoryLocked = false;
 
-    },700);
+    }, 700);
   }
 }
 
 
-$("[data-game='memory']")
-  .addEventListener(
-    "click",
-    startMemoryGame
-  );
-
-
 /* =========================================================
    WORD BUILDER
-========================================================= */
+   ========================================================= */
 
 const wordList = [
+  "SUN",
+  "MOON",
   "STAR",
   "TREE",
   "BOOK",
-  "MOON",
-  "FISH"
+  "FISH",
+  "BALL",
+  "CAKE"
 ];
+
+
+let currentWord = "";
+let selectedLetters = [];
 
 
 function startWordGame() {
@@ -1130,700 +1154,1286 @@ function startWordGame() {
       )
     ];
 
+
   selectedLetters = [];
 
-  renderWordGame();
 
-  openModal("gameModal");
+  renderWordGame();
 }
 
 
 function renderWordGame() {
 
   const letters =
-    currentWord
-      .split("")
-      .sort(() => Math.random() - .5);
+    [...currentWord]
+      .sort(
+        () => Math.random() - 0.5
+      );
 
 
-  $("#gameContent").innerHTML = `
-
-    <div class="word-game">
-
-      <div class="game-emoji">
-        🔤
-      </div>
-
-      <h2>Word Builder</h2>
-
-      <p class="word-target">
-        Build this word:
-        <strong>${currentWord}</strong>
-      </p>
-
-      <div class="word-slots">
-
-        ${currentWord
-          .split("")
-          .map(() => `
-            <div class="word-slot"></div>
-          `)
-          .join("")}
-
-      </div>
-
-      <div class="letter-bank">
-
-        ${letters.map((letter,index) => `
-
+  const lettersHTML =
+    letters
+      .map(
+        (letter, index) => `
           <button
-            class="letter-button"
+            class="letter-btn"
+            type="button"
             data-letter="${letter}"
-            data-letter-id="${index}">
-
+            data-letter-index="${index}"
+          >
             ${letter}
-
           </button>
+        `
+      )
+      .join("");
 
-        `).join("")}
+
+  openGameModal(
+    "🔤 Word Builder",
+    `
+      <div class="word-game">
+
+        <p>
+          Build the word!
+        </p>
+
+        <div
+          class="word-answer"
+          id="wordAnswer"
+        >
+          _
+        </div>
+
+        <div class="letter-grid">
+          ${lettersHTML}
+        </div>
+
+        <button
+          class="primary-btn"
+          id="checkWordBtn"
+          type="button"
+        >
+          Check Word
+        </button>
 
       </div>
+    `
+  );
 
-    </div>
-  `;
+
+  $$(".letter-btn").forEach(
+    (button) => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          chooseLetter(
+            button
+          );
+
+        }
+      );
+
+    }
+  );
 
 
-  $$(".letter-button").forEach(button => {
-
-    button.addEventListener(
+  $("#checkWordBtn")
+    ?.addEventListener(
       "click",
-      () => chooseLetter(button)
+      checkWord
     );
-
-  });
-
 }
 
 
 function chooseLetter(button) {
 
   if (
-    button.classList.contains("used")
-  ) return;
-
-  selectedLetters.push(
-    button.dataset.letter
-  );
-
-  button.classList.add("used");
-
-  const slots =
-    $$(".word-slot");
-
-  const index =
-    selectedLetters.length - 1;
-
-  slots[index].textContent =
-    button.dataset.letter;
+    button.classList.contains(
+      "selected"
+    )
+  ) {
+    return;
+  }
 
 
   if (
-    selectedLetters.join("") ===
-    currentWord
+    selectedLetters.length >=
+    currentWord.length
   ) {
+    return;
+  }
 
-    setTimeout(() => {
 
-      addCoins(25);
-      addXP(25);
-      completeActivity();
+  const letter =
+    button.dataset.letter;
 
-      $("#gameContent").innerHTML = `
 
-        <div class="quiz-result">
+  selectedLetters.push(letter);
 
-          <div class="result-emoji">
-            🎉
-          </div>
+  button.classList.add("selected");
 
-          <h2>Awesome Word!</h2>
 
-          <p>
-            You built
-            <strong>${currentWord}</strong>
-            correctly!
-          </p>
+  const answer =
+    $("#wordAnswer");
 
-          <div class="result-rewards">
 
-            <span class="reward-pill">
-              🪙 +25 Coins
-            </span>
+  if (answer) {
 
-            <span class="reward-pill">
-              ⭐ +25 XP
-            </span>
-
-          </div>
-
-          <button
-            class="btn btn-primary full-btn"
-            id="wordDone">
-
-            Great! 🌟
-
-          </button>
-
-        </div>
-
-      `;
-
-      $("#wordDone").onclick =
-        () => closeModal("gameModal");
-
-      createConfetti();
-
-    },400);
+    answer.textContent =
+      selectedLetters.join("");
   }
 }
 
 
-$("[data-game='word']")
-  .addEventListener(
-    "click",
-    startWordGame
-  );
+function checkWord() {
+
+  const answer =
+    selectedLetters.join("");
+
+
+  if (answer === currentWord) {
+
+    addCoins(25);
+    addXP(60);
+    completeActivity();
+
+
+    openGameModal(
+      "🎉 Correct!",
+      `
+        <div class="result-screen">
+
+          <div class="result-emoji">
+            🥳
+          </div>
+
+          <h2>Great Word!</h2>
+
+          <p>
+            You built "${currentWord}" correctly.
+          </p>
+
+          <div class="result-rewards">
+            🪙 +25 &nbsp;&nbsp; ⭐ +60 XP
+          </div>
+
+          <button
+            class="primary-btn"
+            id="wordDoneBtn"
+            type="button"
+          >
+            Continue
+          </button>
+
+        </div>
+      `
+    );
+
+
+    $("#wordDoneBtn")
+      ?.addEventListener(
+        "click",
+        closeGameModal
+      );
+
+  } else {
+
+    showToast(
+      "💡 Not quite! Try again."
+    );
+  }
+}
 
 
 /* =========================================================
    MATH CHALLENGE
-========================================================= */
+   ========================================================= */
+
+let mathAnswer = 0;
+
 
 function startMathGame() {
 
   const a =
-    Math.floor(Math.random() * 10) + 1;
+    Math.floor(
+      Math.random() * 10
+    ) + 1;
+
 
   const b =
-    Math.floor(Math.random() * 10) + 1;
-
-  const answer = a + b;
-
-  const options = [
-    answer,
-    answer + 1,
-    Math.max(1, answer - 2),
-    answer + 3
-  ].sort(() => Math.random() - .5);
+    Math.floor(
+      Math.random() * 10
+    ) + 1;
 
 
-  $("#gameContent").innerHTML = `
+  mathAnswer = a + b;
 
-    <div class="simple-game">
 
-      <div class="game-emoji">
-        ➕
-      </div>
+  openGameModal(
+    "➕ Math Challenge",
+    `
+      <div class="simple-game">
 
-      <h2>Math Challenge</h2>
+        <div class="big-question">
+          ${a} + ${b} = ?
+        </div>
 
-      <p>Solve the problem!</p>
+        <input
+          id="mathAnswerInput"
+          class="game-input"
+          type="number"
+          placeholder="Your answer"
+          autocomplete="off"
+        />
 
-      <div class="simple-question">
-        ${a} + ${b} = ?
-      </div>
-
-      <div class="simple-options">
-
-        ${options.map(option => `
-
-          <button
-            class="simple-option"
-            data-answer="${option}">
-
-            ${option}
-
-          </button>
-
-        `).join("")}
+        <button
+          class="primary-btn"
+          id="mathSubmitBtn"
+          type="button"
+        >
+          Check Answer
+        </button>
 
       </div>
+    `
+  );
 
-    </div>
-  `;
+
+  const input =
+    $("#mathAnswerInput");
 
 
-  $$(".simple-option").forEach(button => {
-
-    button.addEventListener(
+  $("#mathSubmitBtn")
+    ?.addEventListener(
       "click",
       () => {
 
-        const selected =
-          Number(button.dataset.answer);
+        const answer =
+          Number(input?.value);
 
-        if (selected === answer) {
 
-          addCoins(30);
-          addXP(25);
+        if (answer === mathAnswer) {
+
+          addCoins(20);
+          addXP(50);
           completeActivity();
 
-          showSimpleSuccess(
-            "Math Star! 🎉",
-            "+30 Coins • +25 XP"
+
+          openGameModal(
+            "🎉 Correct!",
+            `
+              <div class="result-screen">
+
+                <div class="result-emoji">
+                  🧮✨
+                </div>
+
+                <h2>Perfect!</h2>
+
+                <p>
+                  ${a} + ${b} = ${mathAnswer}
+                </p>
+
+                <div class="result-rewards">
+                  🪙 +20 &nbsp;&nbsp; ⭐ +50 XP
+                </div>
+
+                <button
+                  class="primary-btn"
+                  id="mathDoneBtn"
+                  type="button"
+                >
+                  Continue
+                </button>
+
+              </div>
+            `
           );
+
+
+          $("#mathDoneBtn")
+            ?.addEventListener(
+              "click",
+              closeGameModal
+            );
 
         } else {
 
           showToast(
-            "💡",
-            "Almost! Try another one!"
+            "❌ Try again!"
           );
-
-          button.disabled = true;
-          button.style.opacity = ".5";
         }
 
       }
     );
-
-  });
-
 }
-
-
-function showSimpleSuccess(title,reward) {
-
-  $("#gameContent").innerHTML = `
-
-    <div class="quiz-result">
-
-      <div class="result-emoji">
-        🌟
-      </div>
-
-      <h2>${title}</h2>
-
-      <p>Correct answer!</p>
-
-      <div class="result-rewards">
-
-        <span class="reward-pill">
-          ${reward}
-        </span>
-
-      </div>
-
-      <button
-        class="btn btn-primary full-btn"
-        id="simpleDone">
-
-        Continue 🚀
-
-      </button>
-
-    </div>
-
-  `;
-
-  $("#simpleDone").onclick =
-    () => closeModal("gameModal");
-
-  createConfetti();
-}
-
-
-$("[data-game='mathgame']")
-  .addEventListener(
-    "click",
-    startMathGame
-  );
 
 
 /* =========================================================
    COLOR GAME
-========================================================= */
+   ========================================================= */
+
+const colorData = [
+  {
+    name: "Red",
+    emoji: "🔴"
+  },
+
+  {
+    name: "Blue",
+    emoji: "🔵"
+  },
+
+  {
+    name: "Green",
+    emoji: "🟢"
+  },
+
+  {
+    name: "Yellow",
+    emoji: "🟡"
+  },
+
+  {
+    name: "Purple",
+    emoji: "🟣"
+  },
+
+  {
+    name: "Orange",
+    emoji: "🟠"
+  }
+];
+
+
+let targetColor = null;
+
 
 function startColorGame() {
 
-  const colors = [
-    {
-      name: "Red",
-      emoji: "🔴"
-    },
-    {
-      name: "Green",
-      emoji: "🟢"
-    },
-    {
-      name: "Blue",
-      emoji: "🔵"
-    },
-    {
-      name: "Yellow",
-      emoji: "🟡"
-    }
-  ];
-
-
-  const target =
-    colors[
+  targetColor =
+    colorData[
       Math.floor(
         Math.random() *
-        colors.length
+        colorData.length
       )
     ];
 
 
-  const options =
-    [...colors]
-      .sort(() => Math.random() - .5);
+  const shuffled =
+    [...colorData]
+      .sort(
+        () => Math.random() - 0.5
+      );
 
 
-  $("#gameContent").innerHTML = `
-
-    <div class="simple-game">
-
-      <div class="game-emoji">
-        🎨
-      </div>
-
-      <h2>Color Game</h2>
-
-      <p>
-        Find the
-        <strong>${target.name}</strong>
-        color!
-      </p>
-
-      <div class="simple-question">
-        ${target.emoji}
-      </div>
-
-      <div class="simple-options">
-
-        ${options.map(color => `
-
+  const optionsHTML =
+    shuffled
+      .map(
+        (color) => `
           <button
-            class="simple-option"
-            data-color="${color.name}">
+            class="color-choice"
+            type="button"
+            data-color="${color.name}"
+          >
+            <span>
+              ${color.emoji}
+            </span>
 
-            ${color.emoji}
             ${color.name}
-
           </button>
+        `
+      )
+      .join("");
 
-        `).join("")}
+
+  openGameModal(
+    "🎨 Color Game",
+    `
+      <div class="simple-game">
+
+        <div class="color-target">
+          Find:
+          <strong>
+            ${targetColor.name}
+          </strong>
+        </div>
+
+        <div class="color-options">
+          ${optionsHTML}
+        </div>
 
       </div>
-
-    </div>
-
-  `;
+    `
+  );
 
 
-  $$(".simple-option").forEach(button => {
+  $$(".color-choice").forEach(
+    (button) => {
 
-    button.addEventListener(
-      "click",
-      () => {
+      button.addEventListener(
+        "click",
+        () => {
 
-        if (
-          button.dataset.color ===
-          target.name
-        ) {
+          const selected =
+            button.dataset.color;
 
-          addCoins(20);
-          addXP(20);
-          completeActivity();
 
-          showSimpleSuccess(
-            "Color Champion! 🌈",
-            "+20 Coins • +20 XP"
-          );
+          if (
+            selected ===
+            targetColor.name
+          ) {
 
-        } else {
+            addCoins(15);
+            addXP(40);
+            completeActivity();
 
-          button.disabled = true;
 
-          showToast(
-            "💡",
-            "Try again!"
-          );
+            openGameModal(
+              "🎨 Great!",
+              `
+                <div class="result-screen">
+
+                  <div class="result-emoji">
+                    🌈
+                  </div>
+
+                  <h2>Correct Color!</h2>
+
+                  <p>
+                    You found ${targetColor.name}.
+                  </p>
+
+                  <div class="result-rewards">
+                    🪙 +15 &nbsp;&nbsp; ⭐ +40 XP
+                  </div>
+
+                  <button
+                    class="primary-btn"
+                    id="colorDoneBtn"
+                    type="button"
+                  >
+                    Continue
+                  </button>
+
+                </div>
+              `
+            );
+
+
+            $("#colorDoneBtn")
+              ?.addEventListener(
+                "click",
+                closeGameModal
+              );
+
+          } else {
+
+            showToast(
+              "💡 Try another color!"
+            );
+          }
 
         }
+      );
 
-      }
-    );
-
-  });
-
-}
-
-
-$("[data-game='color']")
-  .addEventListener(
-    "click",
-    startColorGame
+    }
   );
+}
 
 
 /* =========================================================
    NUMBER HUNT
-========================================================= */
+   ========================================================= */
+
+let numberTarget = 0;
+
 
 function startNumberGame() {
 
-  const answer =
-    Math.floor(Math.random() * 9) + 1;
-
-  const options = [
-    answer,
-    Math.floor(Math.random() * 9) + 1,
-    Math.floor(Math.random() * 9) + 1,
-    Math.floor(Math.random() * 9) + 1
-  ];
+  numberTarget =
+    Math.floor(
+      Math.random() * 10
+    ) + 1;
 
 
-  $("#gameContent").innerHTML = `
+  const numbers = [];
 
-    <div class="simple-game">
 
-      <div class="game-emoji">
-        🔢
-      </div>
+  while (numbers.length < 6) {
 
-      <h2>Number Hunt</h2>
+    const number =
+      Math.floor(
+        Math.random() * 10
+      ) + 1;
 
-      <p>
-        Find number
-        <strong>${answer}</strong>
-      </p>
 
-      <div class="simple-options">
+    if (
+      !numbers.includes(number)
+    ) {
+      numbers.push(number);
+    }
+  }
 
-        ${options.map(option => `
 
+  if (
+    !numbers.includes(numberTarget)
+  ) {
+
+    numbers[
+      Math.floor(
+        Math.random() *
+        numbers.length
+      )
+    ] = numberTarget;
+  }
+
+
+  numbers.sort(
+    () => Math.random() - 0.5
+  );
+
+
+  const numbersHTML =
+    numbers
+      .map(
+        (number) => `
           <button
-            class="simple-option"
-            data-number="${option}">
-
-            ${option}
-
+            class="number-choice"
+            type="button"
+            data-number="${number}"
+          >
+            ${number}
           </button>
+        `
+      )
+      .join("");
 
-        `).join("")}
+
+  openGameModal(
+    "🔢 Number Hunt",
+    `
+      <div class="simple-game">
+
+        <div class="big-question">
+          Find number
+          <strong>${numberTarget}</strong>
+        </div>
+
+        <div class="number-grid">
+          ${numbersHTML}
+        </div>
 
       </div>
+    `
+  );
 
-    </div>
-  `;
+
+  $$(".number-choice").forEach(
+    (button) => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          const selected =
+            Number(
+              button.dataset.number
+            );
 
 
-  $$(".simple-option").forEach(button => {
+          if (
+            selected ===
+            numberTarget
+          ) {
 
-    button.addEventListener(
-      "click",
-      () => {
+            addCoins(15);
+            addXP(40);
+            completeActivity();
 
-        if (
-          Number(button.dataset.number) ===
-          answer
-        ) {
 
-          addCoins(20);
-          addXP(20);
-          completeActivity();
+            openGameModal(
+              "🏆 You Found It!",
+              `
+                <div class="result-screen">
 
-          showSimpleSuccess(
-            "Number Ninja! 🔢",
-            "+20 Coins • +20 XP"
-          );
+                  <div class="result-emoji">
+                    🔢🎉
+                  </div>
 
-        } else {
+                  <h2>Correct!</h2>
 
-          button.disabled = true;
+                  <p>
+                    You found number
+                    ${numberTarget}.
+                  </p>
 
-          showToast(
-            "💡",
-            "Not that one. Try again!"
-          );
+                  <div class="result-rewards">
+                    🪙 +15 &nbsp;&nbsp; ⭐ +40 XP
+                  </div>
+
+                  <button
+                    class="primary-btn"
+                    id="numberDoneBtn"
+                    type="button"
+                  >
+                    Continue
+                  </button>
+
+                </div>
+              `
+            );
+
+
+            $("#numberDoneBtn")
+              ?.addEventListener(
+                "click",
+                closeGameModal
+              );
+
+          } else {
+
+            showToast(
+              "💡 That's not the number!"
+            );
+          }
 
         }
+      );
 
-      }
-    );
-
-  });
-
-}
-
-
-$("[data-game='number']")
-  .addEventListener(
-    "click",
-    startNumberGame
+    }
   );
+}
 
 
 /* =========================================================
    DAILY CHALLENGE
-========================================================= */
+   ========================================================= */
 
-$("#challengeBtn").addEventListener(
-  "click",
-  () => {
+function startDailyChallenge() {
 
-    if (player.dailyProgress >= 3) {
+  if (player.dailyProgress >= 3) {
 
-      showToast(
-        "🎉",
-        "Today's mission is complete!"
-      );
+    showToast(
+      "🏆 Daily challenge complete!"
+    );
 
-      return;
-    }
-
-    startQuiz("general");
-
+    return;
   }
-);
+
+
+  startQuiz("general");
+}
 
 
 /* =========================================================
    CONTINUE LEARNING
-========================================================= */
+   ========================================================= */
 
-$("#continueBtn").addEventListener(
-  "click",
-  () => {
+function continueLearning() {
 
-    document
-      .querySelector("#learn")
-      .scrollIntoView({
-        behavior: "smooth"
-      });
+  const learnSection =
+    $("#learn");
 
-  }
-);
+
+  if (!learnSection) return;
+
+
+  learnSection.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
+function setupNavigation() {
+
+  const links =
+    $$("a[href^='#']");
+
+
+  links.forEach(
+    (link) => {
+
+      link.addEventListener(
+        "click",
+        (event) => {
+
+          const href =
+            link.getAttribute("href");
+
+
+          if (
+            !href ||
+            href === "#"
+          ) {
+            return;
+          }
+
+
+          const target =
+            $(href);
+
+
+          if (!target) {
+            return;
+          }
+
+
+          event.preventDefault();
+
+
+          target.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+          });
+
+
+          links.forEach(
+            (item) => {
+              item.classList.remove(
+                "active"
+              );
+            }
+          );
+
+
+          link.classList.add(
+            "active"
+          );
+
+        }
+      );
+
+    }
+  );
+}
 
 
 /* =========================================================
    TOAST
-========================================================= */
+   ========================================================= */
 
 let toastTimer = null;
 
-function showToast(icon,message) {
+
+function showToast(message) {
 
   const toast =
     $("#toast");
 
-  $("#toastIcon").textContent =
-    icon;
 
-  $("#toastMessage").textContent =
-    message;
+  if (!toast) {
+    return;
+  }
+
+
+  toast.textContent = message;
 
   toast.classList.add("show");
 
+
   clearTimeout(toastTimer);
 
+
   toastTimer =
-    setTimeout(() => {
+    setTimeout(
+      () => {
 
-      toast.classList.remove("show");
+        toast.classList.remove(
+          "show"
+        );
 
-    },2200);
+      },
+      2200
+    );
 }
 
 
 /* =========================================================
    CONFETTI
-========================================================= */
+   ========================================================= */
 
 function createConfetti() {
 
   const container =
-    $("#confettiContainer");
+    $("#confetti");
 
-  const pieces = 55;
 
-  for (let i = 0; i < pieces; i++) {
+  if (!container) return;
+
+
+  container.innerHTML = "";
+
+
+  const emojis = [
+    "🎉",
+    "⭐",
+    "✨",
+    "🎊",
+    "🌟"
+  ];
+
+
+  for (
+    let i = 0;
+    i < 25;
+    i++
+  ) {
 
     const piece =
-      document.createElement("div");
+      document.createElement(
+        "span"
+      );
+
 
     piece.className =
       "confetti-piece";
 
+
+    piece.textContent =
+      emojis[
+        Math.floor(
+          Math.random() *
+          emojis.length
+        )
+      ];
+
+
     piece.style.left =
       `${Math.random() * 100}%`;
 
+
     piece.style.animationDelay =
-      `${Math.random() * .5}s`;
+      `${Math.random() * 0.5}s`;
 
-    piece.style.background =
-      randomConfettiColor();
-
-    piece.style.transform =
-      `rotate(${Math.random() * 360}deg)`;
 
     container.appendChild(piece);
+  }
 
-    setTimeout(() => {
-      piece.remove();
-    },2300);
+
+  setTimeout(
+    () => {
+      container.innerHTML = "";
+    },
+    2500
+  );
+}
+
+
+/* =========================================================
+   GENERIC GAME HANDLER
+   IMPORTANT:
+   ALL PLAY BUTTONS ARE HANDLED HERE
+   ========================================================= */
+
+function handleGameButton(game) {
+
+  switch (game) {
+
+    case "memory":
+      startMemoryGame();
+      break;
+
+
+    case "quiz":
+      startQuiz("general");
+      break;
+
+
+    case "word":
+      startWordGame();
+      break;
+
+
+    case "mathgame":
+      startMathGame();
+      break;
+
+
+    case "color":
+      startColorGame();
+      break;
+
+
+    case "number":
+      startNumberGame();
+      break;
+
+
+    default:
+      console.warn(
+        "Unknown game:",
+        game
+      );
 
   }
 }
 
 
-function randomConfettiColor() {
+/* =========================================================
+   SETUP GAME BUTTONS
+   ========================================================= */
 
-  const colors = [
-    "#6c63ff",
-    "#ffc928",
-    "#ff6fae",
-    "#39c98a",
-    "#48aaf5",
-    "#ff8b3d"
-  ];
+function setupGameButtons() {
 
-  return colors[
-    Math.floor(
-      Math.random() *
-      colors.length
-    )
-  ];
+  /*
+     IMPORTANT:
+     We use ONE delegated click listener.
+     This works even if buttons are generated
+     or changed later.
+  */
+
+  document.addEventListener(
+    "click",
+    function (event) {
+
+      const button =
+        event.target.closest(
+          "[data-game]"
+        );
+
+
+      if (!button) {
+        return;
+      }
+
+
+      const game =
+        button.dataset.game;
+
+
+      if (!game) {
+        return;
+      }
+
+
+      event.preventDefault();
+      event.stopPropagation();
+
+
+      handleGameButton(game);
+
+    }
+  );
 }
 
 
 /* =========================================================
-   INITIALIZE
-========================================================= */
+   SUBJECT QUIZ BUTTONS
+   ========================================================= */
 
-function initialize() {
+function setupSubjectButtons() {
+
+  document.addEventListener(
+    "click",
+    function (event) {
+
+      const button =
+        event.target.closest(
+          "[data-quiz]"
+        );
+
+
+      if (!button) {
+        return;
+      }
+
+
+      const category =
+        button.dataset.quiz ||
+        "general";
+
+
+      event.preventDefault();
+      event.stopPropagation();
+
+
+      startQuiz(category);
+
+    }
+  );
+}
+
+
+/* =========================================================
+   PROFILE SETUP
+   ========================================================= */
+
+function setupProfile() {
+
+  $("#profileBtn")
+    ?.addEventListener(
+      "click",
+      openProfile
+    );
+
+
+  $("#closeProfile")
+    ?.addEventListener(
+      "click",
+      closeProfile
+    );
+
+
+  $("#saveProfile")
+    ?.addEventListener(
+      "click",
+      () => {
+
+        const nameInput =
+          $("#profileNameInput");
+
+
+        const avatarInput =
+          $("#profileAvatarInput");
+
+
+        if (
+          nameInput &&
+          nameInput.value.trim()
+        ) {
+
+          player.name =
+            nameInput.value.trim();
+        }
+
+
+        if (
+          avatarInput &&
+          avatarInput.value.trim()
+        ) {
+
+          player.avatar =
+            avatarInput.value.trim();
+        }
+
+
+        savePlayer();
+
+        updatePlayerUI();
+
+        closeProfile();
+
+        showToast(
+          "✅ Profile saved!"
+        );
+
+      }
+    );
+}
+
+
+/* =========================================================
+   MODAL OUTSIDE CLICK
+   ========================================================= */
+
+function setupModalClosing() {
+
+  const gameModal =
+    $("#gameModal");
+
+
+  if (gameModal) {
+
+    gameModal.addEventListener(
+      "click",
+      (event) => {
+
+        if (
+          event.target ===
+          gameModal
+        ) {
+          closeGameModal();
+        }
+
+      }
+    );
+  }
+
+
+  const profileModal =
+    $("#profileModal");
+
+
+  if (profileModal) {
+
+    profileModal.addEventListener(
+      "click",
+      (event) => {
+
+        if (
+          event.target ===
+          profileModal
+        ) {
+          closeProfile();
+        }
+
+      }
+    );
+  }
+
+
+  document.addEventListener(
+    "keydown",
+    (event) => {
+
+      if (
+        event.key === "Escape"
+      ) {
+
+        closeGameModal();
+        closeProfile();
+
+      }
+
+    }
+  );
+}
+
+
+/* =========================================================
+   DAILY CHALLENGE SETUP
+   ========================================================= */
+
+function setupChallenge() {
+
+  $("#challengeBtn")
+    ?.addEventListener(
+      "click",
+      () => {
+
+        startDailyChallenge();
+
+      }
+    );
+}
+
+
+/* =========================================================
+   CONTINUE BUTTON
+   ========================================================= */
+
+function setupContinueButton() {
+
+  $("#continueBtn")
+    ?.addEventListener(
+      "click",
+      continueLearning
+    );
+
+
+  $("#startLearningBtn")
+    ?.addEventListener(
+      "click",
+      continueLearning
+    );
+}
+
+
+/* =========================================================
+   RESET PLAYER
+   ========================================================= */
+
+function resetPlayer() {
+
+  const confirmed =
+    confirm(
+      "Are you sure you want to reset your progress?"
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  player = {
+    ...defaultPlayer,
+    badges: {
+      ...defaultPlayer.badges
+    }
+  };
+
+
+  savePlayer();
 
   updatePlayerUI();
 
-  $("#playerName").value =
-    player.name;
+  showToast(
+    "🔄 Progress reset!"
+  );
+}
 
-  selectedAvatar =
-    player.avatar;
 
-  $$(".avatar-option").forEach(button => {
+/* =========================================================
+   OPTIONAL RESET BUTTON
+   ========================================================= */
 
-    button.classList.toggle(
-      "selected",
-      button.dataset.avatar ===
-      player.avatar
+function setupReset() {
+
+  $("#resetProgress")
+    ?.addEventListener(
+      "click",
+      resetPlayer
     );
+}
 
-  });
+
+/* =========================================================
+   PAGE LOAD
+   ========================================================= */
+
+function initialize() {
+
+  console.log(
+    "WonderKids JavaScript loaded successfully."
+  );
+
+
+  updatePlayerUI();
+
+  setupNavigation();
+
+  setupGameButtons();
+
+  setupSubjectButtons();
+
+  setupProfile();
+
+  setupModalClosing();
+
+  setupChallenge();
+
+  setupContinueButton();
+
+  setupReset();
 
 }
 
 
-initialize();
+/* =========================================================
+   START
+   ========================================================= */
+
+if (
+  document.readyState ===
+  "loading"
+) {
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    initialize
+  );
+
+} else {
+
+  initialize();
+
+}
