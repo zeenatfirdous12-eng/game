@@ -1,517 +1,480 @@
 "use strict";
 
-/* =====================================================
-   WONDERKIDS
-   Interactive learning + games
-   Browser localStorage only
-===================================================== */
+/* =========================================================
+   WONDERKIDS — MAIN APP
+========================================================= */
 
-
-/* =====================================================
-   PLAYER
-===================================================== */
+const STORAGE_KEY = "wonderkids_player_v2";
 
 const defaultPlayer = {
   name: "Young Explorer",
   avatar: "🧒",
-  coins: 120,
+
+  coins: 420,
   hearts: 5,
-  xp: 680,
+
+  xp: 2680,
   level: 3,
+
   streak: 4,
-  dailyProgress: 0
+
+  dailyProgress: 0,
+  dailyRewardClaimed: false,
+
+  quizQuestions: 0,
+  completedActivities: 0,
+
+  badges: {
+    firstStep: true,
+    onFire: true,
+    brainMaster: false,
+    wonderKid: false
+  }
 };
 
+
 let player = loadPlayer();
+
+let selectedAvatar = player.avatar;
+
+let currentQuiz = null;
+let currentQuizIndex = 0;
+let currentQuizScore = 0;
+
+let memoryCards = [];
+let memoryFirst = null;
+let memorySecond = null;
+let memoryLocked = false;
+let memoryMatches = 0;
+
+let currentWord = "";
+let selectedLetters = [];
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+const $ = (selector) => document.querySelector(selector);
+const $$ = (selector) => [...document.querySelectorAll(selector)];
+
 
 function loadPlayer() {
 
   try {
 
-    const saved =
-      localStorage.getItem("wonderkids_player");
+    const saved = localStorage.getItem(STORAGE_KEY);
 
     if (!saved) {
       return { ...defaultPlayer };
     }
 
+    const parsed = JSON.parse(saved);
+
     return {
       ...defaultPlayer,
-      ...JSON.parse(saved)
+      ...parsed,
+      badges: {
+        ...defaultPlayer.badges,
+        ...(parsed.badges || {})
+      }
     };
 
   } catch (error) {
 
-    console.error(error);
+    console.warn("Could not load player:", error);
 
     return { ...defaultPlayer };
-
   }
-
 }
+
 
 function savePlayer() {
 
   localStorage.setItem(
-    "wonderkids_player",
+    STORAGE_KEY,
     JSON.stringify(player)
   );
-
 }
 
 
-/* =====================================================
-   HELPERS
-===================================================== */
-
-const $ = selector =>
-  document.querySelector(selector);
-
-const $$ = selector =>
-  Array.from(document.querySelectorAll(selector));
-
-
-/* =====================================================
-   UI UPDATE
-===================================================== */
+/* =========================================================
+   PLAYER UI
+========================================================= */
 
 function updatePlayerUI() {
 
-  const coin = $("#coinCount");
-  const heart = $("#heartCount");
-  const heroName = $("#heroName");
-  const levelNumber = $("#levelNumber");
-  const levelText = $("#levelText");
-  const streak = $("#streakCount");
+  $("#coinCount").textContent = player.coins;
+  $("#heartCount").textContent = player.hearts;
 
-  if (coin) coin.textContent = player.coins;
-  if (heart) heart.textContent = player.hearts;
-  if (heroName) heroName.textContent = player.name;
-  if (levelNumber) levelNumber.textContent = player.level;
-  if (levelText) levelText.textContent = player.level;
-  if (streak) streak.textContent = player.streak;
+  $("#heroName").textContent = player.name;
 
+  $("#levelNumber").textContent = player.level;
+  $("#levelText").textContent = player.level;
 
-  const xpIntoLevel =
-    player.xp % 1000;
+  $("#streakCount").textContent = player.streak;
 
-  const xpPercent =
-    Math.min(
-      100,
-      (xpIntoLevel / 1000) * 100
-    );
+  const xpIntoLevel = player.xp % 1000;
 
-  const xpFill = $("#xpFill");
+  const xpPercent = Math.min(
+    100,
+    Math.round((xpIntoLevel / 1000) * 100)
+  );
 
-  if (xpFill) {
-    xpFill.style.width =
-      `${xpPercent}%`;
-  }
+  $("#xpFill").style.width = `${xpPercent}%`;
 
-  const xpText = $("#xpText");
-
-  if (xpText) {
-    xpText.textContent =
-      `${xpIntoLevel} / 1000 XP`;
-  }
-
+  $("#xpText").textContent =
+    `${xpIntoLevel} / 1000 XP`;
 
   const dailyPercent =
-    Math.min(
-      100,
-      (player.dailyProgress / 3) * 100
-    );
+    Math.min(100, Math.round((player.dailyProgress / 3) * 100));
 
-  const dailyProgress =
-    $("#dailyProgressText");
+  $("#dailyProgressText").textContent =
+    `${dailyPercent}%`;
 
-  if (dailyProgress) {
-    dailyProgress.textContent =
-      `${Math.round(dailyPercent)}%`;
-  }
+  $("#challengeFill").style.width =
+    `${dailyPercent}%`;
 
+  $("#challengeCount").textContent =
+    `${Math.min(player.dailyProgress, 3)} / 3`;
 
-  const challengeFill =
-    $("#challengeFill");
-
-  if (challengeFill) {
-    challengeFill.style.width =
-      `${dailyPercent}%`;
-  }
-
-
-  const challengeCount =
-    $("#challengeCount");
-
-  if (challengeCount) {
-    challengeCount.textContent =
-      `${Math.min(player.dailyProgress,3)} / 3`;
-  }
-
-
-  const avatar =
-    $("#profileBtn");
-
-  if (avatar) {
-    avatar.textContent =
-      player.avatar;
-  }
-
-
-  const input =
-    $("#playerName");
-
-  if (input) {
-    input.value =
-      player.name;
-  }
-
+  $("#profileBtn").textContent =
+    player.avatar;
 
   updateChallengeButton();
+  updateBadges();
 
+  savePlayer();
 }
 
 
 function updateChallengeButton() {
 
-  const button =
-    $("#challengeBtn");
-
-  if (!button) return;
+  const button = $("#challengeBtn");
 
   if (player.dailyProgress >= 3) {
 
-    button.textContent =
-      "🎉 Completed!";
+    button.textContent = "🎉 Completed!";
 
     button.disabled = true;
-    button.style.opacity = ".65";
+
+    button.style.opacity = ".7";
 
   } else {
 
-    button.textContent =
-      "Start Challenge";
+    button.textContent = "Start Mission";
 
     button.disabled = false;
+
     button.style.opacity = "1";
-
   }
-
 }
 
 
-/* =====================================================
-   COINS
-===================================================== */
+function updateBadges() {
+
+  const brainBadge = $("#brainMasterBadge");
+  const wonderBadge = $("#wonderKidBadge");
+
+  if (player.quizQuestions >= 20) {
+
+    player.badges.brainMaster = true;
+
+    brainBadge.classList.add("unlocked");
+
+    brainBadge.querySelector("span").textContent =
+      "✓ Unlocked";
+
+  }
+
+  if (player.level >= 10) {
+
+    player.badges.wonderKid = true;
+
+    wonderBadge.classList.add("unlocked");
+
+    wonderBadge.querySelector("span").textContent =
+      "✓ Unlocked";
+  }
+}
+
+
+/* =========================================================
+   REWARDS
+========================================================= */
 
 function addCoins(amount) {
 
   player.coins += amount;
-
-  savePlayer();
-  updatePlayerUI();
 
   showToast(
     "🪙",
     `+${amount} coins!`
   );
 
+  updatePlayerUI();
 }
 
-
-/* =====================================================
-   XP
-===================================================== */
 
 function addXP(amount) {
 
-  const oldLevel =
-    player.level;
-
   player.xp += amount;
 
-  player.level =
+  const calculatedLevel =
     Math.floor(player.xp / 1000) + 1;
 
-  savePlayer();
-  updatePlayerUI();
+  if (calculatedLevel > player.level) {
 
-  showToast(
-    "⭐",
-    `+${amount} XP!`
-  );
+    player.level = calculatedLevel;
 
-  if (player.level > oldLevel) {
+    showToast(
+      "🎊",
+      `LEVEL UP! You are now Level ${player.level}!`
+    );
 
-    setTimeout(() => {
-
-      showToast(
-        "🏆",
-        `Level ${player.level} unlocked!`
-      );
-
-      createConfetti();
-
-    },500);
-
+    createConfetti();
   }
 
+  updatePlayerUI();
 }
 
-
-/* =====================================================
-   ACTIVITY
-===================================================== */
 
 function completeActivity() {
 
+  player.completedActivities++;
+
   if (player.dailyProgress < 3) {
+
     player.dailyProgress++;
+
+    if (player.dailyProgress === 3 &&
+        !player.dailyRewardClaimed) {
+
+      player.dailyRewardClaimed = true;
+
+      player.coins += 50;
+
+      setTimeout(() => {
+
+        showToast(
+          "🎯",
+          "Daily Mission Complete! +50 coins!"
+        );
+
+        createConfetti();
+
+      }, 400);
+    }
   }
 
-  savePlayer();
   updatePlayerUI();
-
 }
 
 
-/* =====================================================
+/* =========================================================
+   PROFILE
+========================================================= */
+
+function openProfile() {
+
+  $("#playerName").value =
+    player.name;
+
+  selectedAvatar =
+    player.avatar;
+
+  $$(".avatar-option").forEach(button => {
+
+    button.classList.toggle(
+      "selected",
+      button.dataset.avatar === selectedAvatar
+    );
+
+  });
+
+  openModal("profileModal");
+}
+
+
+function saveProfile() {
+
+  const name =
+    $("#playerName").value.trim();
+
+  player.name =
+    name || "Young Explorer";
+
+  player.avatar =
+    selectedAvatar;
+
+  savePlayer();
+
+  updatePlayerUI();
+
+  closeModal("profileModal");
+
+  showToast(
+    "💖",
+    "Profile saved!"
+  );
+}
+
+
+$("#profileBtn").addEventListener(
+  "click",
+  openProfile
+);
+
+
+$$(".avatar-option").forEach(button => {
+
+  button.addEventListener("click", () => {
+
+    selectedAvatar =
+      button.dataset.avatar;
+
+    $$(".avatar-option").forEach(item => {
+
+      item.classList.remove("selected");
+
+    });
+
+    button.classList.add("selected");
+  });
+
+});
+
+
+$("#saveProfile").addEventListener(
+  "click",
+  saveProfile
+);
+
+
+/* =========================================================
    MODALS
-===================================================== */
+========================================================= */
 
 function openModal(id) {
 
-  const modal =
-    document.getElementById(id);
+  const modal = $(`#${id}`);
 
   if (!modal) return;
 
-  modal.classList.add("show");
+  modal.classList.add("open");
 
-  document.body.style.overflow =
-    "hidden";
-
+  document.body.style.overflow = "hidden";
 }
 
 
 function closeModal(id) {
 
-  const modal =
-    document.getElementById(id);
+  const modal = $(`#${id}`);
 
   if (!modal) return;
 
-  modal.classList.remove("show");
+  modal.classList.remove("open");
 
-  if (!$(".modal-overlay.show")) {
-    document.body.style.overflow = "";
-  }
-
+  document.body.style.overflow = "";
 }
 
 
-/* =====================================================
-   PROFILE
-===================================================== */
+$$("[data-close]").forEach(button => {
 
-$("#profileBtn")?.addEventListener(
-  "click",
-  () => {
+  button.addEventListener("click", () => {
 
-    const input =
-      $("#playerName");
-
-    if (input) {
-      input.value =
-        player.name;
-    }
-
-    $$(".avatar-option")
-      .forEach(button => {
-
-        button.classList.toggle(
-          "selected",
-          button.dataset.avatar ===
-          player.avatar
-        );
-
-      });
-
-    openModal("profileModal");
-
-  }
-);
-
-
-$$(".avatar-option")
-  .forEach(button => {
-
-    button.addEventListener(
-      "click",
-      () => {
-
-        $$(".avatar-option")
-          .forEach(btn =>
-            btn.classList.remove("selected")
-          );
-
-        button.classList.add("selected");
-
-        player.avatar =
-          button.dataset.avatar;
-
-      }
+    closeModal(
+      button.dataset.close
     );
 
   });
 
+});
 
-$("#saveProfile")?.addEventListener(
-  "click",
-  () => {
 
-    const enteredName =
-      $("#playerName").value.trim();
+$$(".modal-overlay").forEach(overlay => {
 
-    if (enteredName) {
-      player.name =
-        enteredName;
+  overlay.addEventListener("click", event => {
+
+    if (event.target === overlay) {
+
+      closeModal(overlay.id);
     }
-
-    savePlayer();
-    updatePlayerUI();
-
-    closeModal("profileModal");
-
-    showToast(
-      "✨",
-      "Profile saved!"
-    );
-
-  }
-);
-
-
-$$("[data-close]")
-  .forEach(button => {
-
-    button.addEventListener(
-      "click",
-      () => {
-
-        closeModal(
-          button.dataset.close
-        );
-
-      }
-    );
 
   });
 
-
-$$(".modal-overlay")
-  .forEach(overlay => {
-
-    overlay.addEventListener(
-      "click",
-      event => {
-
-        if (
-          event.target === overlay
-        ) {
-
-          closeModal(
-            overlay.id
-          );
-
-        }
-
-      }
-    );
-
-  });
+});
 
 
-document.addEventListener(
-  "keydown",
-  event => {
+document.addEventListener("keydown", event => {
 
-    if (event.key === "Escape") {
+  if (event.key === "Escape") {
 
-      $$(".modal-overlay.show")
-        .forEach(modal => {
+    $$(".modal-overlay.open").forEach(modal => {
 
-          closeModal(
-            modal.id
-          );
+      closeModal(modal.id);
 
-        });
-
-    }
+    });
 
   }
-);
+
+});
 
 
-/* =====================================================
+/* =========================================================
    NAVIGATION
-===================================================== */
+========================================================= */
 
-$$(".nav-link")
-  .forEach(link => {
+$$(".nav-link").forEach(link => {
 
-    link.addEventListener(
-      "click",
-      () => {
+  link.addEventListener("click", () => {
 
-        $$(".nav-link")
-          .forEach(item =>
-            item.classList.remove("active")
-          );
-
-        link.classList.add("active");
-
-      }
+    $$(".nav-link").forEach(item =>
+      item.classList.remove("active")
     );
+
+    link.classList.add("active");
 
   });
 
+});
 
-/* =====================================================
+
+/* =========================================================
    QUIZ DATA
-===================================================== */
+========================================================= */
 
 const quizData = {
 
   math: [
 
     {
-      question: "What is 5 + 3?",
-      options: ["6","7","8","9"],
+      q: "What is 5 + 3?",
+      options: ["6", "7", "8", "9"],
       answer: 2
     },
 
     {
-      question: "What is 10 - 4?",
-      options: ["4","5","6","7"],
-      answer: 2
-    },
-
-    {
-      question: "Which number is bigger?",
-      options: ["3","7","5","2"],
+      q: "What is 10 - 4?",
+      options: ["5", "6", "7", "8"],
       answer: 1
     },
 
     {
-      question: "What is 2 × 4?",
-      options: ["6","7","8","9"],
+      q: "What is 3 × 4?",
+      options: ["7", "10", "12", "14"],
       answer: 2
     },
 
     {
-      question: "How many sides does a triangle have?",
-      options: ["2","3","4","5"],
+      q: "What is 20 ÷ 5?",
+      options: ["2", "3", "4", "5"],
+      answer: 2
+    },
+
+    {
+      q: "Which number is bigger?",
+      options: ["12", "21", "15", "18"],
       answer: 1
     }
 
@@ -521,32 +484,32 @@ const quizData = {
   english: [
 
     {
-      question: "Which word is a color?",
-      options: ["Apple","Blue","Dog","Run"],
+      q: "Which word is an animal?",
+      options: ["Apple", "Tiger", "Chair", "Blue"],
       answer: 1
     },
 
     {
-      question: "Which one is an animal?",
-      options: ["Table","Tiger","Chair","Book"],
+      q: "Which letter comes after C?",
+      options: ["A", "B", "D", "E"],
+      answer: 2
+    },
+
+    {
+      q: "What is the opposite of HOT?",
+      options: ["Warm", "Cold", "Big", "Fast"],
       answer: 1
     },
 
     {
-      question: "What is the opposite of BIG?",
-      options: ["Tall","Small","Fast","Happy"],
-      answer: 1
+      q: "Which word is spelled correctly?",
+      options: ["Appl", "Aple", "Apple", "Appel"],
+      answer: 2
     },
 
     {
-      question: "Which word rhymes with CAT?",
-      options: ["Dog","Hat","Sun","Tree"],
-      answer: 1
-    },
-
-    {
-      question: "Which word starts with B?",
-      options: ["Apple","Banana","Orange","Elephant"],
+      q: "Which one is a color?",
+      options: ["Jump", "Purple", "Run", "Book"],
       answer: 1
     }
 
@@ -556,33 +519,33 @@ const quizData = {
   science: [
 
     {
-      question: "Which planet do we live on?",
-      options: ["Mars","Earth","Jupiter","Venus"],
+      q: "Which animal says 'Moo'?",
+      options: ["Cat", "Cow", "Dog", "Lion"],
       answer: 1
     },
 
     {
-      question: "What gives us light during the day?",
-      options: ["Moon","Stars","Sun","Cloud"],
+      q: "Which planet do we live on?",
+      options: ["Mars", "Earth", "Jupiter", "Venus"],
+      answer: 1
+    },
+
+    {
+      q: "What do plants need to grow?",
+      options: ["Sunlight", "Shoes", "Toys", "Books"],
+      answer: 0
+    },
+
+    {
+      q: "How many legs does a spider have?",
+      options: ["4", "6", "8", "10"],
       answer: 2
     },
 
     {
-      question: "Which animal can fly?",
-      options: ["Fish","Bird","Dog","Horse"],
+      q: "Which one is a star?",
+      options: ["Moon", "Sun", "Earth", "Mars"],
       answer: 1
-    },
-
-    {
-      question: "What do plants need to grow?",
-      options: ["Water","Shoes","Toys","Cars"],
-      answer: 0
-    },
-
-    {
-      question: "Which one lives in water?",
-      options: ["Fish","Cat","Cow","Lion"],
-      answer: 0
     }
 
   ],
@@ -591,32 +554,32 @@ const quizData = {
   general: [
 
     {
-      question: "How many days are in a week?",
-      options: ["5","6","7","8"],
+      q: "How many days are in a week?",
+      options: ["5", "6", "7", "8"],
       answer: 2
     },
 
     {
-      question: "Which shape is round?",
-      options: ["Square","Triangle","Circle","Rectangle"],
-      answer: 2
-    },
-
-    {
-      question: "Which one is used for writing?",
-      options: ["Pencil","Spoon","Ball","Shoe"],
+      q: "Which animal is known as the king of the jungle?",
+      options: ["Lion", "Rabbit", "Horse", "Duck"],
       answer: 0
     },
 
     {
-      question: "What color is grass usually?",
-      options: ["Green","Purple","Pink","Black"],
+      q: "What color is the sky on a clear day?",
+      options: ["Green", "Blue", "Pink", "Orange"],
+      answer: 1
+    },
+
+    {
+      q: "Which fruit is usually yellow?",
+      options: ["Banana", "Apple", "Grape", "Blueberry"],
       answer: 0
     },
 
     {
-      question: "Which one is a fruit?",
-      options: ["Carrot","Apple","Potato","Onion"],
+      q: "How many wheels does a bicycle have?",
+      options: ["1", "2", "3", "4"],
       answer: 1
     }
 
@@ -625,49 +588,21 @@ const quizData = {
 };
 
 
-let currentQuiz = [];
-let currentQuizIndex = 0;
-let quizScore = 0;
-let quizAnswered = false;
-
-
-/* =====================================================
-   START QUIZ
-===================================================== */
-
-$$("[data-quiz]")
-  .forEach(button => {
-
-    button.addEventListener(
-      "click",
-      () => {
-
-        startQuiz(
-          button.dataset.quiz
-        );
-
-      }
-    );
-
-  });
-
+/* =========================================================
+   QUIZ
+========================================================= */
 
 function startQuiz(category) {
 
   currentQuiz =
-    [
-      ...(quizData[category] ||
-        quizData.general)
-    ];
+    quizData[category] || quizData.general;
 
   currentQuizIndex = 0;
-  quizScore = 0;
-  quizAnswered = false;
+  currentQuizScore = 0;
 
   renderQuiz(category);
 
   openModal("gameModal");
-
 }
 
 
@@ -676,83 +611,68 @@ function renderQuiz(category) {
   const question =
     currentQuiz[currentQuizIndex];
 
-  if (!question) {
-
-    showQuizResult(category);
-
-    return;
-
-  }
-
+  const progress =
+    ((currentQuizIndex + 1) /
+    currentQuiz.length) * 100;
 
   $("#gameContent").innerHTML = `
 
-    <div class="quiz-top">
+    <div class="quiz-header">
 
-      <span class="quiz-category">
-        ${category.toUpperCase()} QUIZ
-      </span>
+      <div class="game-emoji">🧠</div>
 
-      <span class="quiz-progress">
-        ${currentQuizIndex + 1}
-        /
-        ${currentQuiz.length}
-      </span>
+      <h2>${capitalize(category)} Quiz</h2>
+
+      <div class="quiz-progress">
+        <div
+          class="quiz-progress-fill"
+          style="width:${progress}%">
+        </div>
+      </div>
+
+      <small>
+        Question ${currentQuizIndex + 1}
+        of ${currentQuiz.length}
+      </small>
 
     </div>
 
-    <h2 class="quiz-question">
-      ${question.question}
-    </h2>
+    <div class="quiz-question">
+      ${question.q}
+    </div>
 
     <div class="quiz-options">
 
-      ${question.options
-        .map((option,index) => `
+      ${question.options.map((option,index) => `
 
-          <button
-            class="quiz-option"
-            data-option="${index}">
-            ${option}
-          </button>
+        <button
+          class="quiz-option"
+          data-index="${index}">
 
-        `)
-        .join("")}
+          ${option}
+
+        </button>
+
+      `).join("")}
 
     </div>
-
   `;
 
 
-  $$(".quiz-option")
-    .forEach(button => {
+  $$(".quiz-option").forEach(button => {
 
-      button.addEventListener(
-        "click",
-        () => {
+    button.addEventListener(
+      "click",
+      () => checkQuizAnswer(
+        Number(button.dataset.index)
+      )
+    );
 
-          checkQuizAnswer(
-            Number(button.dataset.option),
-            category
-          );
-
-        }
-      );
-
-    });
-
+  });
 }
 
 
-function checkQuizAnswer(
-  selected,
-  category
-) {
-
-  if (quizAnswered)
-    return;
-
-  quizAnswered = true;
+function checkQuizAnswer(index) {
 
   const question =
     currentQuiz[currentQuizIndex];
@@ -760,61 +680,115 @@ function checkQuizAnswer(
   const buttons =
     $$(".quiz-option");
 
-  buttons.forEach(button => {
-    button.disabled = true;
-  });
+  buttons.forEach(button =>
+    button.disabled = true
+  );
 
 
-  if (
-    selected ===
-    question.answer
-  ) {
+  if (index === question.answer) {
 
-    quizScore++;
+    buttons[index].classList.add("correct");
 
-    buttons[selected]
-      .classList.add("correct");
+    currentQuizScore++;
 
     showToast(
       "🎉",
-      "Correct answer!"
+      "Amazing! Correct answer!"
     );
 
   } else {
 
-    buttons[selected]
-      .classList.add("wrong");
+    buttons[index].classList.add("wrong");
 
     buttons[question.answer]
       .classList.add("correct");
 
     showToast(
       "💡",
-      "Good try!"
+      "Almost! Keep trying!"
     );
-
   }
 
 
   setTimeout(() => {
 
     currentQuizIndex++;
-    quizAnswered = false;
 
-    renderQuiz(category);
+    if (
+      currentQuizIndex >=
+      currentQuiz.length
+    ) {
 
-  },800);
+      showQuizResult();
 
+    } else {
+
+      renderQuiz(
+        findCurrentCategory()
+      );
+
+    }
+
+  }, 750);
 }
 
 
-function showQuizResult(category) {
+function findCurrentCategory() {
 
-  const earnedCoins =
-    quizScore * 6;
+  for (const category in quizData) {
 
-  const earnedXP =
-    quizScore * 15;
+    if (quizData[category] === currentQuiz) {
+      return category;
+    }
+
+  }
+
+  return "general";
+}
+
+
+function showQuizResult() {
+
+  const total =
+    currentQuiz.length;
+
+  const score =
+    currentQuizScore;
+
+  const coins =
+    score * 6;
+
+  const xp =
+    score * 12;
+
+  player.quizQuestions += total;
+
+  addCoins(coins);
+  addXP(xp);
+
+  completeActivity();
+
+  const percentage =
+    Math.round((score / total) * 100);
+
+  let emoji = "🌟";
+  let message = "Great effort!";
+
+  if (percentage >= 80) {
+
+    emoji = "🏆";
+    message = "AMAZING! You are a WonderKid!";
+
+  } else if (percentage >= 50) {
+
+    emoji = "🎉";
+    message = "Great job! Keep learning!";
+
+  } else {
+
+    emoji = "💡";
+    message = "Keep trying! You are learning!";
+  }
 
 
   $("#gameContent").innerHTML = `
@@ -822,340 +796,320 @@ function showQuizResult(category) {
     <div class="quiz-result">
 
       <div class="result-emoji">
-        ${quizScore >= 4 ? "🏆" : "🌟"}
+        ${emoji}
       </div>
 
-      <h2>
-        Quiz Complete!
-      </h2>
+      <h2>${message}</h2>
 
       <div class="result-score">
-        ${quizScore}/${currentQuiz.length}
+        ${score}/${total}
       </div>
 
-      <p class="result-message">
-        ${getQuizMessage(quizScore)}
+      <p>
+        You got ${percentage}% correct!
       </p>
 
-      <p style="
-        margin-top:20px;
-        color:#77809c;
-        line-height:1.8;
-      ">
-        🪙 +${earnedCoins} coins
-        <br>
-        ⭐ +${earnedXP} XP
-      </p>
+      <div class="result-rewards">
+
+        <span class="reward-pill">
+          🪙 +${coins} Coins
+        </span>
+
+        <span class="reward-pill">
+          ⭐ +${xp} XP
+        </span>
+
+      </div>
 
       <button
-        id="quizDone"
-        class="btn btn-primary full-btn">
-        Awesome!
+        class="btn btn-primary full-btn"
+        id="quizDone">
+
+        Continue 🚀
+
       </button>
 
     </div>
-
   `;
 
 
-  addCoins(earnedCoins);
-  addXP(earnedXP);
-  completeActivity();
+  $("#quizDone").addEventListener(
+    "click",
+    () => closeModal("gameModal")
+  );
 
   createConfetti();
+}
 
 
-  $("#quizDone")
-    .addEventListener(
-      "click",
-      () => closeModal("gameModal")
+function getQuizMessage(score,total) {
+
+  const percentage =
+    (score / total) * 100;
+
+  if (percentage >= 80)
+    return "Amazing!";
+
+  if (percentage >= 50)
+    return "Great job!";
+
+  return "Keep trying!";
+}
+
+
+function capitalize(value) {
+
+  return value.charAt(0).toUpperCase() +
+    value.slice(1);
+}
+
+
+/* =========================================================
+   SUBJECT BUTTONS
+========================================================= */
+
+$$("[data-quiz]").forEach(button => {
+
+  button.addEventListener("click", () => {
+
+    startQuiz(
+      button.dataset.quiz
     );
 
-}
+  });
+
+});
 
 
-function getQuizMessage(score) {
-
-  if (score === 5)
-    return "Amazing! You're a superstar! 🌟";
-
-  if (score >= 4)
-    return "Fantastic work! Keep going! 🚀";
-
-  if (score >= 2)
-    return "Nice try! Practice makes you stronger! 💪";
-
-  return "Great effort! Let's try again! 😊";
-
-}
-
-
-/* =====================================================
+/* =========================================================
    QUICK QUIZ
-===================================================== */
+========================================================= */
 
-$$("[data-game='quiz']")
-  .forEach(button => {
+$$("[data-game='quiz']").forEach(button => {
 
-    button.addEventListener(
-      "click",
-      () => startQuiz("general")
-    );
+  button.addEventListener("click", () => {
+
+    startQuiz("general");
 
   });
 
-
-/* =====================================================
-   MEMORY GAME
-===================================================== */
-
-let memoryFirst = null;
-let memorySecond = null;
-let memoryLock = false;
-let memoryMatches = 0;
-
-const memorySymbols = [
-  "🍎",
-  "⭐",
-  "🚀",
-  "🐼",
-  "🌈",
-  "🦄"
-];
+});
 
 
-$$("[data-game='memory']")
-  .forEach(button => {
-
-    button.addEventListener(
-      "click",
-      startMemoryGame
-    );
-
-  });
-
+/* =========================================================
+   MEMORY MATCH
+========================================================= */
 
 function startMemoryGame() {
 
-  const cards =
-    [
-      ...memorySymbols,
-      ...memorySymbols
-    ]
-    .sort(() => Math.random() - .5);
+  const symbols = [
+    "🍎",
+    "⭐",
+    "🚀",
+    "🐼",
+    "🌈",
+    "🦄"
+  ];
+
+  memoryCards =
+    [...symbols,...symbols]
+      .sort(() => Math.random() - .5);
 
   memoryFirst = null;
   memorySecond = null;
-  memoryLock = false;
+  memoryLocked = false;
   memoryMatches = 0;
 
+  renderMemoryGame();
+
+  openModal("gameModal");
+}
+
+
+function renderMemoryGame() {
 
   $("#gameContent").innerHTML = `
 
-    <div class="quiz-top">
+    <div class="memory-title">
 
-      <span class="quiz-category">
-        MEMORY MATCH
-      </span>
+      <div class="game-emoji">🧠</div>
 
-      <span class="quiz-progress">
-        Find all pairs
-      </span>
+      <h2>Memory Match</h2>
+
+      <p>
+        Find all matching pairs!
+      </p>
 
     </div>
 
-    <h2 class="quiz-question">
-      Match the same pictures! 🧠
-    </h2>
+    <div class="memory-board">
 
-    <div class="memory-grid">
-
-      ${cards.map((symbol,index) => `
+      ${memoryCards.map((symbol,index) => `
 
         <button
-          class="memory-tile"
-          data-index="${index}"
-          data-symbol="${symbol}">
-          ?
+          class="memory-card"
+          data-index="${index}">
+
+          <span class="back">?</span>
+
+          <span class="front">
+            ${symbol}
+          </span>
+
         </button>
 
       `).join("")}
 
     </div>
 
-    <div class="memory-info">
-
-      <span>
-        Matches:
-        <strong id="memoryMatches">0</strong>
-        / 6
-      </span>
-
-      <span>
-        🪙 Win 20 coins
-      </span>
-
-    </div>
-
   `;
 
 
-  $$(".memory-tile")
-    .forEach(tile => {
+  $$(".memory-card").forEach(card => {
 
-      tile.addEventListener(
-        "click",
-        () => flipMemoryTile(tile)
-      );
+    card.addEventListener(
+      "click",
+      () => flipMemoryCard(
+        Number(card.dataset.index)
+      )
+    );
 
-    });
-
-
-  openModal("gameModal");
-
+  });
 }
 
 
-function flipMemoryTile(tile) {
+function flipMemoryCard(index) {
 
-  if (memoryLock)
-    return;
+  if (memoryLocked) return;
+
+  const card =
+    $(`.memory-card[data-index="${index}"]`);
+
+  if (!card) return;
 
   if (
-    tile.classList.contains("flipped") ||
-    tile.classList.contains("matched")
-  )
+    card.classList.contains("flipped") ||
+    card.classList.contains("matched")
+  ) {
     return;
-
-
-  tile.classList.add("flipped");
-
-  tile.textContent =
-    tile.dataset.symbol;
-
-
-  if (!memoryFirst) {
-
-    memoryFirst = tile;
-
-    return;
-
   }
 
 
-  memorySecond = tile;
-  memoryLock = true;
+  card.classList.add("flipped");
+
+  if (memoryFirst === null) {
+
+    memoryFirst = index;
+    return;
+  }
+
+
+  memorySecond = index;
+
+  memoryLocked = true;
+
+  const firstCard =
+    $(`.memory-card[data-index="${memoryFirst}"]`);
+
+  const secondCard =
+    $(`.memory-card[data-index="${memorySecond}"]`);
 
 
   if (
-    memoryFirst.dataset.symbol ===
-    memorySecond.dataset.symbol
+    memoryCards[memoryFirst] ===
+    memoryCards[memorySecond]
   ) {
 
-    memoryFirst.classList.add("matched");
-    memorySecond.classList.add("matched");
+    firstCard.classList.add("matched");
+    secondCard.classList.add("matched");
 
     memoryMatches++;
 
-    $("#memoryMatches")
-      .textContent =
-      memoryMatches;
-
     memoryFirst = null;
     memorySecond = null;
-    memoryLock = false;
+    memoryLocked = false;
 
 
     if (memoryMatches === 6) {
 
-      setTimeout(
-        finishMemoryGame,
-        500
-      );
+      setTimeout(() => {
 
+        addCoins(20);
+        addXP(30);
+        completeActivity();
+
+        $("#gameContent").innerHTML = `
+
+          <div class="quiz-result">
+
+            <div class="result-emoji">
+              🏆
+            </div>
+
+            <h2>Memory Master!</h2>
+
+            <p>
+              You found every pair!
+            </p>
+
+            <div class="result-rewards">
+
+              <span class="reward-pill">
+                🪙 +20 Coins
+              </span>
+
+              <span class="reward-pill">
+                ⭐ +30 XP
+              </span>
+
+            </div>
+
+            <button
+              class="btn btn-primary full-btn"
+              id="memoryDone">
+
+              Awesome! 🎉
+
+            </button>
+
+          </div>
+
+        `;
+
+        $("#memoryDone").onclick =
+          () => closeModal("gameModal");
+
+        createConfetti();
+
+      },500);
     }
 
-    return;
+  } else {
 
+    setTimeout(() => {
+
+      firstCard.classList.remove("flipped");
+      secondCard.classList.remove("flipped");
+
+      memoryFirst = null;
+      memorySecond = null;
+      memoryLocked = false;
+
+    },700);
   }
-
-
-  setTimeout(() => {
-
-    memoryFirst.classList.remove("flipped");
-    memorySecond.classList.remove("flipped");
-
-    memoryFirst.textContent = "?";
-    memorySecond.textContent = "?";
-
-    memoryFirst = null;
-    memorySecond = null;
-
-    memoryLock = false;
-
-  },750);
-
 }
 
 
-function finishMemoryGame() {
-
-  addCoins(20);
-  addXP(30);
-  completeActivity();
-
-  createConfetti();
+$("[data-game='memory']")
+  .addEventListener(
+    "click",
+    startMemoryGame
+  );
 
 
-  $("#gameContent").innerHTML = `
-
-    <div class="quiz-result">
-
-      <div class="result-emoji">
-        🧠
-      </div>
-
-      <h2>
-        Memory Master!
-      </h2>
-
-      <p class="result-message">
-        You matched every pair!
-      </p>
-
-      <p style="
-        margin-top:15px;
-        color:#77809c;
-        line-height:1.8;
-      ">
-        🪙 +20 coins
-        <br>
-        ⭐ +30 XP
-      </p>
-
-      <button
-        id="memoryDone"
-        class="btn btn-primary full-btn">
-        Awesome!
-      </button>
-
-    </div>
-
-  `;
-
-
-  $("#memoryDone")
-    .addEventListener(
-      "click",
-      () => closeModal("gameModal")
-    );
-
-}
-
-
-/* =====================================================
+/* =========================================================
    WORD BUILDER
-===================================================== */
+========================================================= */
 
 const wordList = [
   "STAR",
@@ -1164,20 +1118,6 @@ const wordList = [
   "MOON",
   "FISH"
 ];
-
-let currentWord = "";
-let selectedLetters = [];
-
-
-$$("[data-game='word']")
-  .forEach(button => {
-
-    button.addEventListener(
-      "click",
-      startWordGame
-    );
-
-  });
 
 
 function startWordGame() {
@@ -1192,6 +1132,13 @@ function startWordGame() {
 
   selectedLetters = [];
 
+  renderWordGame();
+
+  openModal("gameModal");
+}
+
+
+function renderWordGame() {
 
   const letters =
     currentWord
@@ -1201,268 +1148,582 @@ function startWordGame() {
 
   $("#gameContent").innerHTML = `
 
-    <div class="quiz-top">
+    <div class="word-game">
 
-      <span class="quiz-category">
-        WORD BUILDER
-      </span>
+      <div class="game-emoji">
+        🔤
+      </div>
 
-      <span class="quiz-progress">
-        Build the word
-      </span>
+      <h2>Word Builder</h2>
+
+      <p class="word-target">
+        Build this word:
+        <strong>${currentWord}</strong>
+      </p>
+
+      <div class="word-slots">
+
+        ${currentWord
+          .split("")
+          .map(() => `
+            <div class="word-slot"></div>
+          `)
+          .join("")}
+
+      </div>
+
+      <div class="letter-bank">
+
+        ${letters.map((letter,index) => `
+
+          <button
+            class="letter-button"
+            data-letter="${letter}"
+            data-letter-id="${index}">
+
+            ${letter}
+
+          </button>
+
+        `).join("")}
+
+      </div>
+
+    </div>
+  `;
+
+
+  $$(".letter-button").forEach(button => {
+
+    button.addEventListener(
+      "click",
+      () => chooseLetter(button)
+    );
+
+  });
+
+}
+
+
+function chooseLetter(button) {
+
+  if (
+    button.classList.contains("used")
+  ) return;
+
+  selectedLetters.push(
+    button.dataset.letter
+  );
+
+  button.classList.add("used");
+
+  const slots =
+    $$(".word-slot");
+
+  const index =
+    selectedLetters.length - 1;
+
+  slots[index].textContent =
+    button.dataset.letter;
+
+
+  if (
+    selectedLetters.join("") ===
+    currentWord
+  ) {
+
+    setTimeout(() => {
+
+      addCoins(25);
+      addXP(25);
+      completeActivity();
+
+      $("#gameContent").innerHTML = `
+
+        <div class="quiz-result">
+
+          <div class="result-emoji">
+            🎉
+          </div>
+
+          <h2>Awesome Word!</h2>
+
+          <p>
+            You built
+            <strong>${currentWord}</strong>
+            correctly!
+          </p>
+
+          <div class="result-rewards">
+
+            <span class="reward-pill">
+              🪙 +25 Coins
+            </span>
+
+            <span class="reward-pill">
+              ⭐ +25 XP
+            </span>
+
+          </div>
+
+          <button
+            class="btn btn-primary full-btn"
+            id="wordDone">
+
+            Great! 🌟
+
+          </button>
+
+        </div>
+
+      `;
+
+      $("#wordDone").onclick =
+        () => closeModal("gameModal");
+
+      createConfetti();
+
+    },400);
+  }
+}
+
+
+$("[data-game='word']")
+  .addEventListener(
+    "click",
+    startWordGame
+  );
+
+
+/* =========================================================
+   MATH CHALLENGE
+========================================================= */
+
+function startMathGame() {
+
+  const a =
+    Math.floor(Math.random() * 10) + 1;
+
+  const b =
+    Math.floor(Math.random() * 10) + 1;
+
+  const answer = a + b;
+
+  const options = [
+    answer,
+    answer + 1,
+    Math.max(1, answer - 2),
+    answer + 3
+  ].sort(() => Math.random() - .5);
+
+
+  $("#gameContent").innerHTML = `
+
+    <div class="simple-game">
+
+      <div class="game-emoji">
+        ➕
+      </div>
+
+      <h2>Math Challenge</h2>
+
+      <p>Solve the problem!</p>
+
+      <div class="simple-question">
+        ${a} + ${b} = ?
+      </div>
+
+      <div class="simple-options">
+
+        ${options.map(option => `
+
+          <button
+            class="simple-option"
+            data-answer="${option}">
+
+            ${option}
+
+          </button>
+
+        `).join("")}
+
+      </div>
+
+    </div>
+  `;
+
+
+  $$(".simple-option").forEach(button => {
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        const selected =
+          Number(button.dataset.answer);
+
+        if (selected === answer) {
+
+          addCoins(30);
+          addXP(25);
+          completeActivity();
+
+          showSimpleSuccess(
+            "Math Star! 🎉",
+            "+30 Coins • +25 XP"
+          );
+
+        } else {
+
+          showToast(
+            "💡",
+            "Almost! Try another one!"
+          );
+
+          button.disabled = true;
+          button.style.opacity = ".5";
+        }
+
+      }
+    );
+
+  });
+
+}
+
+
+function showSimpleSuccess(title,reward) {
+
+  $("#gameContent").innerHTML = `
+
+    <div class="quiz-result">
+
+      <div class="result-emoji">
+        🌟
+      </div>
+
+      <h2>${title}</h2>
+
+      <p>Correct answer!</p>
+
+      <div class="result-rewards">
+
+        <span class="reward-pill">
+          ${reward}
+        </span>
+
+      </div>
+
+      <button
+        class="btn btn-primary full-btn"
+        id="simpleDone">
+
+        Continue 🚀
+
+      </button>
 
     </div>
 
-    <h2 class="quiz-question">
-      Put the letters in the correct order!
-    </h2>
+  `;
 
-    <div class="word-target">
-      <span>
-        ${"_".repeat(currentWord.length)}
-      </span>
+  $("#simpleDone").onclick =
+    () => closeModal("gameModal");
+
+  createConfetti();
+}
+
+
+$("[data-game='mathgame']")
+  .addEventListener(
+    "click",
+    startMathGame
+  );
+
+
+/* =========================================================
+   COLOR GAME
+========================================================= */
+
+function startColorGame() {
+
+  const colors = [
+    {
+      name: "Red",
+      emoji: "🔴"
+    },
+    {
+      name: "Green",
+      emoji: "🟢"
+    },
+    {
+      name: "Blue",
+      emoji: "🔵"
+    },
+    {
+      name: "Yellow",
+      emoji: "🟡"
+    }
+  ];
+
+
+  const target =
+    colors[
+      Math.floor(
+        Math.random() *
+        colors.length
+      )
+    ];
+
+
+  const options =
+    [...colors]
+      .sort(() => Math.random() - .5);
+
+
+  $("#gameContent").innerHTML = `
+
+    <div class="simple-game">
+
+      <div class="game-emoji">
+        🎨
+      </div>
+
+      <h2>Color Game</h2>
+
+      <p>
+        Find the
+        <strong>${target.name}</strong>
+        color!
+      </p>
+
+      <div class="simple-question">
+        ${target.emoji}
+      </div>
+
+      <div class="simple-options">
+
+        ${options.map(color => `
+
+          <button
+            class="simple-option"
+            data-color="${color.name}">
+
+            ${color.emoji}
+            ${color.name}
+
+          </button>
+
+        `).join("")}
+
+      </div>
+
     </div>
-
-    <div
-      class="word-current"
-      id="wordCurrent">
-      _
-    </div>
-
-    <div class="letter-grid">
-
-      ${letters.map((letter,index) => `
-
-        <button
-          class="letter-btn"
-          data-letter="${letter}"
-          data-letter-id="${index}">
-          ${letter}
-        </button>
-
-      `).join("")}
-
-    </div>
-
-    <button
-      id="clearWord"
-      class="btn btn-secondary full-btn">
-      Clear
-    </button>
 
   `;
 
 
-  $$(".letter-btn")
-    .forEach(button => {
+  $$(".simple-option").forEach(button => {
 
-      button.addEventListener(
-        "click",
-        () => {
-
-          if (
-            button.disabled ||
-            selectedLetters.length >=
-            currentWord.length
-          ) {
-            return;
-          }
-
-          selectedLetters.push(
-            button.dataset.letter
-          );
-
-          button.disabled = true;
-
-          updateCurrentWord();
-
-
-          if (
-            selectedLetters.length ===
-            currentWord.length
-          ) {
-
-            setTimeout(
-              checkWord,
-              300
-            );
-
-          }
-
-        }
-      );
-
-    });
-
-
-  $("#clearWord")
-    .addEventListener(
+    button.addEventListener(
       "click",
       () => {
 
-        selectedLetters = [];
+        if (
+          button.dataset.color ===
+          target.name
+        ) {
 
-        $$(".letter-btn")
-          .forEach(button => {
-            button.disabled = false;
-          });
+          addCoins(20);
+          addXP(20);
+          completeActivity();
 
-        updateCurrentWord();
+          showSimpleSuccess(
+            "Color Champion! 🌈",
+            "+20 Coins • +20 XP"
+          );
+
+        } else {
+
+          button.disabled = true;
+
+          showToast(
+            "💡",
+            "Try again!"
+          );
+
+        }
 
       }
     );
 
-
-  openModal("gameModal");
-
-}
-
-
-function updateCurrentWord() {
-
-  const current =
-    selectedLetters.length
-      ? selectedLetters.join("")
-      : "_";
-
-  $("#wordCurrent")
-    .textContent =
-    current;
+  });
 
 }
 
 
-function checkWord() {
-
-  const answer =
-    selectedLetters.join("");
-
-
-  if (answer === currentWord) {
-
-    addCoins(25);
-    addXP(25);
-    completeActivity();
-
-    createConfetti();
-
-
-    $("#gameContent").innerHTML = `
-
-      <div class="quiz-result">
-
-        <div class="result-emoji">
-          🎉
-        </div>
-
-        <h2>
-          Great Word!
-        </h2>
-
-        <p style="
-          font-size:30px;
-          font-weight:800;
-          color:#6c63ff;
-          margin-top:10px;
-        ">
-          ${currentWord}
-        </p>
-
-        <p class="result-message">
-          You built the word correctly!
-        </p>
-
-        <p style="
-          margin-top:15px;
-          color:#77809c;
-          line-height:1.8;
-        ">
-          🪙 +25 coins
-          <br>
-          ⭐ +25 XP
-        </p>
-
-        <button
-          id="wordDone"
-          class="btn btn-primary full-btn">
-          Awesome!
-        </button>
-
-      </div>
-
-    `;
-
-
-    $("#wordDone")
-      .addEventListener(
-        "click",
-        () => closeModal("gameModal")
-      );
-
-  } else {
-
-    showToast(
-      "💡",
-      "Almost! Try again."
-    );
-
-    selectedLetters = [];
-
-    $$(".letter-btn")
-      .forEach(button => {
-        button.disabled = false;
-      });
-
-    updateCurrentWord();
-
-  }
-
-}
-
-
-/* =====================================================
-DAILY CHALLENGE
-===================================================== */
-
-$("#challengeBtn")
-  ?.addEventListener(
+$("[data-game='color']")
+  .addEventListener(
     "click",
-    () => {
-
-      if (
-        player.dailyProgress >= 3
-      ) {
-        return;
-      }
-
-      startQuiz("general");
-
-    }
+    startColorGame
   );
 
 
-/* =====================================================
-TOAST
-===================================================== */
+/* =========================================================
+   NUMBER HUNT
+========================================================= */
+
+function startNumberGame() {
+
+  const answer =
+    Math.floor(Math.random() * 9) + 1;
+
+  const options = [
+    answer,
+    Math.floor(Math.random() * 9) + 1,
+    Math.floor(Math.random() * 9) + 1,
+    Math.floor(Math.random() * 9) + 1
+  ];
+
+
+  $("#gameContent").innerHTML = `
+
+    <div class="simple-game">
+
+      <div class="game-emoji">
+        🔢
+      </div>
+
+      <h2>Number Hunt</h2>
+
+      <p>
+        Find number
+        <strong>${answer}</strong>
+      </p>
+
+      <div class="simple-options">
+
+        ${options.map(option => `
+
+          <button
+            class="simple-option"
+            data-number="${option}">
+
+            ${option}
+
+          </button>
+
+        `).join("")}
+
+      </div>
+
+    </div>
+  `;
+
+
+  $$(".simple-option").forEach(button => {
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        if (
+          Number(button.dataset.number) ===
+          answer
+        ) {
+
+          addCoins(20);
+          addXP(20);
+          completeActivity();
+
+          showSimpleSuccess(
+            "Number Ninja! 🔢",
+            "+20 Coins • +20 XP"
+          );
+
+        } else {
+
+          button.disabled = true;
+
+          showToast(
+            "💡",
+            "Not that one. Try again!"
+          );
+
+        }
+
+      }
+    );
+
+  });
+
+}
+
+
+$("[data-game='number']")
+  .addEventListener(
+    "click",
+    startNumberGame
+  );
+
+
+/* =========================================================
+   DAILY CHALLENGE
+========================================================= */
+
+$("#challengeBtn").addEventListener(
+  "click",
+  () => {
+
+    if (player.dailyProgress >= 3) {
+
+      showToast(
+        "🎉",
+        "Today's mission is complete!"
+      );
+
+      return;
+    }
+
+    startQuiz("general");
+
+  }
+);
+
+
+/* =========================================================
+   CONTINUE LEARNING
+========================================================= */
+
+$("#continueBtn").addEventListener(
+  "click",
+  () => {
+
+    document
+      .querySelector("#learn")
+      .scrollIntoView({
+        behavior: "smooth"
+      });
+
+  }
+);
+
+
+/* =========================================================
+   TOAST
+========================================================= */
 
 let toastTimer = null;
 
-function showToast(
-  icon,
-  message
-) {
+function showToast(icon,message) {
 
   const toast =
     $("#toast");
 
-  if (!toast)
-    return;
+  $("#toastIcon").textContent =
+    icon;
 
-  $("#toastIcon")
-    .textContent = icon;
-
-  $("#toastMessage")
-    .textContent = message;
+  $("#toastMessage").textContent =
+    message;
 
   toast.classList.add("show");
 
@@ -1474,91 +1735,95 @@ function showToast(
       toast.classList.remove("show");
 
     },2200);
-
 }
 
 
-/* =====================================================
-CONFETTI
-===================================================== */
+/* =========================================================
+   CONFETTI
+========================================================= */
 
 function createConfetti() {
 
-  const pieces = 40;
+  const container =
+    $("#confettiContainer");
 
-  const colors = [
-    "#6c63ff",
-    "#ff6fae",
-    "#ffc928",
-    "#39c98a",
-    "#48aaf5",
-    "#ff8b3d"
-  ];
+  const pieces = 55;
 
-
-  for (
-    let i = 0;
-    i < pieces;
-    i++
-  ) {
+  for (let i = 0; i < pieces; i++) {
 
     const piece =
       document.createElement("div");
 
     piece.className =
-      "confetti";
+      "confetti-piece";
 
     piece.style.left =
       `${Math.random() * 100}%`;
 
     piece.style.animationDelay =
-      `${Math.random() * .4}s`;
+      `${Math.random() * .5}s`;
 
     piece.style.background =
-      colors[
-        Math.floor(
-          Math.random() *
-          colors.length
-        )
-      ];
+      randomConfettiColor();
 
     piece.style.transform =
       `rotate(${Math.random() * 360}deg)`;
 
-    document.body
-      .appendChild(piece);
+    container.appendChild(piece);
 
-
-    setTimeout(
-      () => piece.remove(),
-      2200
-    );
+    setTimeout(() => {
+      piece.remove();
+    },2300);
 
   }
-
 }
 
 
-/* =====================================================
-INITIALIZE
-===================================================== */
+function randomConfettiColor() {
+
+  const colors = [
+    "#6c63ff",
+    "#ffc928",
+    "#ff6fae",
+    "#39c98a",
+    "#48aaf5",
+    "#ff8b3d"
+  ];
+
+  return colors[
+    Math.floor(
+      Math.random() *
+      colors.length
+    )
+  ];
+}
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
 
 function initialize() {
 
   updatePlayerUI();
 
-  const selectedAvatar =
-    $$(".avatar-option")
-      .find(
-        button =>
-          button.dataset.avatar ===
-          player.avatar
-      );
+  $("#playerName").value =
+    player.name;
 
-  if (selectedAvatar) {
-    selectedAvatar.classList.add("selected");
-  }
+  selectedAvatar =
+    player.avatar;
+
+  $$(".avatar-option").forEach(button => {
+
+    button.classList.toggle(
+      "selected",
+      button.dataset.avatar ===
+      player.avatar
+    );
+
+  });
 
 }
+
 
 initialize();
