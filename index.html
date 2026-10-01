@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>WonderKids - Learn & Play</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- =========================
+       TOP BAR
+  ========================== -->
+  <header class="topbar">
+
+    <div class="brand">
+      <div class="brand-icon">🌈</div>
+      <div>
+        <h1>WonderKids</h1>
+        <span>Learn • Play • Grow</span>
+      </div>
+    </div>
+
+    <nav class="main-nav">
+      <a href="#home" class="nav-link active">Home</a>
+      <a href="#subjects" class="nav-link">Learn</a>
+      <a href="#games" class="nav-link">Games</a>
+      <a href="#rewards" class="nav-link">Rewards</a>
+    </nav>
+
+    <div class="player-stats">
+      <div class="stat-pill coins">
+        <span>🪙</span>
+        <strong id="coinCount">120</strong>
+      </div>
+
+      <div class="stat-pill hearts">
+        <span>❤️</span>
+        <strong id="heartCount">5</strong>
+      </div>
+
+      <button class="profile-button" id="profileButton">
+        <span id="profileAvatar">🧒</span>
+      </button>
+    </div>
+
+  </header>
+
+
+  <!-- =========================
+       HERO
+  ========================== -->
+  <main id="home">
+
+    <section class="hero">
+
+      <div class="hero-content">
+
+        <div class="welcome-tag">
+          ✨ Welcome to your learning adventure!
+        </div>
+
+        <h2>
+          Learn Something New.
+          <span>Have Lots of Fun!</span>
+        </h2>
+
+        <p>
+          Explore amazing subjects, play clever games,
+          earn coins and become a WonderKids superstar!
+        </p>
+
+        <div class="hero-buttons">
+          <button class="primary-btn" onclick="scrollToSection('subjects')">
+            🚀 Start Learning
+          </button>
+
+          <button class="secondary-btn" onclick="scrollToSection('games')">
+            🎮 Play Games
+          </button>
+        </div>
+
+        <div class="hero-features">
+          <div>
+            <span>⭐</span>
+            <b>Earn XP</b>
+          </div>
+
+          <div>
+            <span>🏆</span>
+            <b>Win Badges</b>
+          </div>
+
+          <div>
+            <span>🪙</span>
+            <b>Collect Coins</b>
+          </div>
+        </div>
+
+      </div>
+
+
+      <div class="hero-art">
+
+        <div class="sun"></div>
+
+        <div class="cloud cloud-1">☁️</div>
+        <div class="cloud cloud-2">☁️</div>
+
+        <div class="rainbow">🌈</div>
+
+        <div class="mascot">
+          <div class="mascot-face">
+            <div class="eye left-eye"></div>
+            <div class="eye right-eye"></div>
+            <div class="smile"></div>
+          </div>
+
+          <div class="mascot-body">
+            <span>W</span>
+          </div>
+
+          <div class="mascot-arm arm-left"></div>
+          <div class="mascot-arm arm-right"></div>
+        </div>
+
+        <div class="floating-star star-1">⭐</div>
+        <div class="floating-star star-2">✨</div>
+        <div class="floating-star star-3">🌟</div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         PLAYER PROGRESS
+    ========================== -->
+    <section class="progress-section">
+
+      <div class="progress-card">
+
+        <div class="progress-profile">
+          <div class="big-avatar" id="bigAvatar">🧒</div>
+
+          <div>
+            <span class="small-label">YOUR ADVENTURE</span>
+            <h3 id="playerNameDisplay">Young Explorer</h3>
+            <p>Level <strong id="levelNumber">3</strong> Explorer</p>
+          </div>
+        </div>
+
+        <div class="xp-area">
+
+          <div class="xp-label">
+            <span>XP Progress</span>
+            <strong><span id="xpCurrent">680</span> / 1000 XP</strong>
+          </div>
+
+          <div class="xp-bar">
+            <div class="xp-fill" id="xpFill"></div>
+          </div>
+
+        </div>
+
+        <div class="streak">
+          <span>🔥</span>
+          <div>
+            <strong id="streakCount">4 Day</strong>
+            <small>Learning Streak</small>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         DAILY CHALLENGE
+    ========================== -->
+    <section class="daily-section">
+
+      <div class="daily-card">
+
+        <div class="daily-icon">🎯</div>
+
+        <div class="daily-content">
+          <span class="section-mini-title">TODAY'S CHALLENGE</span>
+
+          <h3>Can you get 5 questions right?</h3>
+
+          <p>
+            Complete today's challenge and earn
+            <strong>100 coins + a special badge!</strong>
+          </p>
+
+          <div class="challenge-progress">
+            <div class="challenge-track">
+              <div id="challengeFill"></div>
+            </div>
+
+            <span id="challengeText">0 / 5</span>
+          </div>
+        </div>
+
+        <button class="challenge-btn" onclick="startQuiz('daily')">
+          Start Challenge
+          <span>→</span>
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         SUBJECTS
+    ========================== -->
+    <section class="content-section" id="subjects">
+
+      <div class="section-heading">
+
+        <div>
+          <span class="section-kicker">LEARN & DISCOVER</span>
+          <h2>Choose Your Adventure 🗺️</h2>
+          <p>Pick a subject and start exploring!</p>
+        </div>
+
+        <button class="view-all" onclick="showAllSubjects()">
+          View All →
+        </button>
+
+      </div>
+
+
+      <div class="subject-grid">
+
+        <article class="subject-card math-card" onclick="startQuiz('math')">
+          <div class="subject-decoration">＋</div>
+
+          <div class="subject-icon">🔢</div>
+
+          <span class="subject-tag">MATH</span>
+
+          <h3>Math Mountain</h3>
+
+          <p>
+            Numbers, counting and clever calculations.
+          </p>
+
+          <div class="subject-bottom">
+            <span>⭐ 12 lessons</span>
+            <span class="play-circle">→</span>
+          </div>
+        </article>
+
+
+        <article class="subject-card english-card" onclick="startQuiz('english')">
+          <div class="subject-decoration">Aa</div>
+
+          <div class="subject-icon">📚</div>
+
+          <span class="subject-tag">ENGLISH</span>
+
+          <h3>Word Jungle</h3>
+
+          <p>
+            Discover words, spelling and fun sentences.
+          </p>
+
+          <div class="subject-bottom">
+            <span>⭐ 15 lessons</span>
+            <span class="play-circle">→</span>
+          </div>
+        </article>
+
+
+        <article class="subject-card science-card" onclick="startQuiz('science')">
+          <div class="subject-decoration">⚛</div>
+
+          <div class="subject-icon">🔬</div>
+
+          <span class="subject-tag">SCIENCE</span>
+
+          <h3>Science Lab</h3>
+
+          <p>
+            Animals, planets, nature and amazing facts.
+          </p>
+
+          <div class="subject-bottom">
+            <span>⭐ 10 lessons</span>
+            <span class="play-circle">→</span>
+          </div>
+        </article>
+
+
+        <article class="subject-card general-card" onclick="startQuiz('general')">
+          <div class="subject-decoration">?</div>
+
+          <div class="subject-icon">🧠</div>
+
+          <span class="subject-tag">GENERAL</span>
+
+          <h3>Brain Boost</h3>
+
+          <p>
+            Fun questions that make your brain stronger.
+          </p>
+
+          <div class="subject-bottom">
+            <span>⭐ 20 lessons</span>
+            <span class="play-circle">→</span>
+          </div>
+        </article>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         GAMES
+    ========================== -->
+    <section class="content-section games-section" id="games">
+
+      <div class="section-heading">
+
+        <div>
+          <span class="section-kicker">PLAY & LEARN</span>
+          <h2>Fun Games 🎮</h2>
+          <p>Play games while training your brain!</p>
+        </div>
+
+      </div>
+
+
+      <div class="games-grid">
+
+        <article class="game-card memory-game" onclick="startMemoryGame()">
+
+          <div class="game-image">
+            <div class="game-emoji">🧩</div>
+            <span class="game-badge">POPULAR</span>
+          </div>
+
+          <div class="game-info">
+            <h3>Memory Match</h3>
+            <p>Find matching pairs and test your memory.</p>
+
+            <div class="game-meta">
+              <span>🧠 Brain</span>
+              <span>⭐ Easy</span>
+            </div>
+
+            <button class="game-button">
+              Play Now →
+            </button>
+          </div>
+
+        </article>
+
+
+        <article class="game-card quiz-game" onclick="startQuiz('general')">
+
+          <div class="game-image">
+            <div class="game-emoji">❓</div>
+            <span class="game-badge new">NEW</span>
+          </div>
+
+          <div class="game-info">
+            <h3>Quick Quiz</h3>
+            <p>Answer fun questions and collect rewards.</p>
+
+            <div class="game-meta">
+              <span>🎯 Quiz</span>
+              <span>⭐ Medium</span>
+            </div>
+
+            <button class="game-button">
+              Play Now →
+            </button>
+          </div>
+
+        </article>
+
+
+        <article class="game-card word-game" onclick="startWordGame()">
+
+          <div class="game-image">
+            <div class="game-emoji">🔤</div>
+            <span class="game-badge">FUN</span>
+          </div>
+
+          <div class="game-info">
+            <h3>Word Builder</h3>
+            <p>Build words from mixed-up letters.</p>
+
+            <div class="game-meta">
+              <span>📖 Words</span>
+              <span>⭐ Medium</span>
+            </div>
+
+            <button class="game-button">
+              Play Now →
+            </button>
+          </div>
+
+        </article>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         REWARDS
+    ========================== -->
+    <section class="content-section rewards-section" id="rewards">
+
+      <div class="section-heading">
+
+        <div>
+          <span class="section-kicker">YOUR COLLECTION</span>
+          <h2>Rewards & Badges 🏆</h2>
+          <p>Keep learning to unlock amazing rewards.</p>
+        </div>
+
+      </div>
+
+
+      <div class="rewards-layout">
+
+        <div class="badges-card">
+
+          <h3>Your Badges</h3>
+
+          <div class="badges-grid">
+
+            <div class="badge unlocked">
+              <div>🌟</div>
+              <span>First Star</span>
+            </div>
+
+            <div class="badge unlocked">
+              <div>🔥</div>
+              <span>Hot Streak</span>
+            </div>
+
+            <div class="badge unlocked">
+              <div>🧠</div>
+              <span>Brain Boss</span>
+            </div>
+
+            <div class="badge locked">
+              <div>🚀</div>
+              <span>Super Learner</span>
+            </div>
+
+            <div class="badge locked">
+              <div>👑</div>
+              <span>Quiz King</span>
+            </div>
+
+            <div class="badge locked">
+              <div>💎</div>
+              <span>Diamond Mind</span>
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="reward-card">
+
+          <div class="reward-coin">🪙</div>
+
+          <span class="section-mini-title">YOUR COINS</span>
+
+          <strong id="rewardCoins">120</strong>
+
+          <p>
+            Complete lessons and games
+            to earn more coins.
+          </p>
+
+          <button onclick="showRewardMessage()">
+            How to earn →
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- =========================
+       FOOTER
+  ========================== -->
+  <footer>
+
+    <div class="footer-main">
+
+      <div class="footer-brand">
+        <div class="brand-icon">🌈</div>
+        <div>
+          <h2>WonderKids</h2>
+          <p>Making learning feel like play.</p>
+        </div>
+      </div>
+
+      <div class="footer-links">
+        <a href="#home">Home</a>
+        <a href="#subjects">Learn</a>
+        <a href="#games">Games</a>
+        <a href="#rewards">Rewards</a>
+      </div>
+
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2026 WonderKids. Learn something awesome every day! 🌟</span>
+      <span>Made for curious minds ❤️</span>
+    </div>
+
+  </footer>
+
+
+  <!-- =========================
+       PROFILE MODAL
+  ========================== -->
+  <div class="modal-overlay" id="profileModal">
+
+    <div class="modal profile-modal">
+
+      <button class="close-modal" onclick="closeModal('profileModal')">
+        ×
+      </button>
+
+      <div class="modal-icon">👋</div>
+
+      <h2>Welcome, Explorer!</h2>
+
+      <p>Tell us your name and choose your avatar.</p>
+
+      <input
+        type="text"
+        id="playerNameInput"
+        placeholder="Enter your name"
+        maxlength="20"
+      >
+
+      <div class="avatar-options">
+
+        <button onclick="selectAvatar('🧒')">🧒</button>
+        <button onclick="selectAvatar('👧')">👧</button>
+        <button onclick="selectAvatar('🦸')">🦸</button>
+        <button onclick="selectAvatar('🧑‍🚀')">🧑‍🚀</button>
+        <button onclick="selectAvatar('🧙')">🧙</button>
+        <button onclick="selectAvatar('🦄')">🦄</button>
+
+      </div>
+
+      <button class="primary-btn full-btn" onclick="saveProfile()">
+        Save My Profile 🚀
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- =========================
+       GAME MODAL
+  ========================== -->
+  <div class="modal-overlay" id="gameModal">
+
+    <div class="modal game-modal">
+
+      <button class="close-modal" onclick="closeModal('gameModal')">
+        ×
+      </button>
+
+      <div id="gameContent"></div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =========================
+       MESSAGE TOAST
+  ========================== -->
+  <div class="toast" id="toast">
+    <span id="toastIcon">🎉</span>
+    <span id="toastText">Awesome!</span>
+  </div>
+
+
+  <script src="script.js"></script>
+
+</body>
+</html>
