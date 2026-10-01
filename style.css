@@ -1836,3 +1836,194 @@ a {
   }
 
 }
+/* =====================================================
+   WONDERKIDS - NEW GAMES DESIGN
+===================================================== */
+
+.extra-game-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 24px;
+    padding: 24px;
+    min-height: 250px;
+    background: linear-gradient(
+        145deg,
+        #ffffff 0%,
+        #f5f7ff 100%
+    );
+    border: 2px solid #e8eaff;
+    box-shadow: 0 10px 25px rgba(40, 50, 100, 0.10);
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease,
+        border-color 0.25s ease;
+}
+
+.extra-game-card::before {
+    content: "";
+    position: absolute;
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    top: -45px;
+    right: -35px;
+    background: rgba(99, 102, 241, 0.12);
+}
+
+.extra-game-card:hover {
+    transform: translateY(-7px);
+    box-shadow: 0 18px 35px rgba(40, 50, 100, 0.16);
+    border-color: #8b5cf6;
+}
+
+.extra-game-card .game-icon {
+    position: relative;
+    z-index: 1;
+    width: 68px;
+    height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 20px;
+    margin-bottom: 15px;
+    font-size: 36px;
+    background: linear-gradient(
+        135deg,
+        #fff1f2,
+        #ede9fe
+    );
+    box-shadow: 0 8px 18px rgba(80, 60, 150, 0.12);
+}
+
+.extra-game-card h3 {
+    position: relative;
+    z-index: 1;
+    margin: 8px 0;
+    color: #20243a;
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.extra-game-card p {
+    position: relative;
+    z-index: 1;
+    color: #68708a;
+    line-height: 1.5;
+    margin-bottom: 18px;
+}
+
+.extra-game-card .play-button {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    min-height: 44px;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 800;
+    background: linear-gradient(
+        135deg,
+        #6366f1,
+        #8b5cf6
+    );
+    box-shadow: 0 7px 15px rgba(99, 102, 241, 0.25);
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.extra-game-card .play-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(99, 102, 241, 0.35);
+}
+
+.extra-game-card .play-button:active {
+    transform: scale(0.97);
+}
+
+
+/* Different colors for each new game */
+
+.extra-game-card:nth-child(7) .game-icon {
+    background: linear-gradient(
+        135deg,
+        #fff1f2,
+        #fce7f3
+    );
+}
+
+.extra-game-card:nth-child(8) .game-icon {
+    background: linear-gradient(
+        135deg,
+        #eff6ff,
+        #dbeafe
+    );
+}
+
+.extra-game-card:nth-child(9) .game-icon {
+    background: linear-gradient(
+        135deg,
+        #ecfdf5,
+        #d1fae5
+    );
+}
+
+.extra-game-card:nth-child(10) .game-icon {
+    background: linear-gradient(
+        135deg,
+        #fff7ed,
+        #fed7aa
+    );
+}
+
+.extra-game-card:nth-child(11) .game-icon {
+    background: linear-gradient(
+        135deg,
+        #eef2ff,
+        #ddd6fe
+    );
+}
+
+.extra-game-card:nth-child(12) .game-icon {
+    background: linear-gradient(
+        135deg,
+        #fefce8,
+        #fef08a
+    );
+}
+
+.extra-game-card:nth-child(13) .game-icon {
+    background: linear-gradient(
+        135deg,
+        #ecfeff,
+        #cffafe
+    );
+}
+
+
+/* Mobile */
+
+@media (max-width: 768px) {
+
+    .extra-game-card {
+        padding: 18px;
+        min-height: 230px;
+    }
+
+    .extra-game-card .game-icon {
+        width: 58px;
+        height: 58px;
+        font-size: 30px;
+    }
+
+    .extra-game-card h3 {
+        font-size: 18px;
+    }
+
+    .extra-game-card p {
+        font-size: 13px;
+    }
+
+}
