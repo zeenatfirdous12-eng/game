@@ -3,7 +3,7 @@
 /* =========================================================
    WONDERKIDS
    COMPLETE SCRIPT.JS
-   Games + Quiz + Sounds + Timed Challenge + Mobile
+   Games + Quiz + Piano Sounds + Timed Challenge + Mobile
 ========================================================= */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -37,7 +37,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let player = loadPlayer();
 
   function loadPlayer() {
-
     try {
 
       const saved =
@@ -49,7 +48,8 @@ document.addEventListener("DOMContentLoaded", () => {
         );
       }
 
-      const data = JSON.parse(saved);
+      const data =
+        JSON.parse(saved);
 
       return {
         ...defaultPlayer,
@@ -75,7 +75,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   function savePlayer() {
-
     try {
 
       localStorage.setItem(
@@ -100,6 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function $(selector) {
     return document.querySelector(selector);
   }
+
 
   function $$(selector) {
     return document.querySelectorAll(selector);
@@ -126,10 +126,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* =======================================================
-     SOUND SYSTEM
+     🎹 PIANO SOUND SYSTEM
+     Web Audio API
+     No external MP3 files required
   ======================================================= */
 
   let audioContext = null;
+  let masterGain = null;
+  let pianoReady = false;
+  let soundEnabled = true;
+
+
+  /* -------------------------------------------------------
+     CREATE AUDIO CONTEXT
+  ------------------------------------------------------- */
 
   function getAudioContext() {
 
@@ -143,25 +153,529 @@ document.addEventListener("DOMContentLoaded", () => {
         return null;
       }
 
+
       if (!audioContext) {
-        audioContext = new AudioContext();
+
+        audioContext =
+          new AudioContext();
+
+        masterGain =
+          audioContext.createGain();
+
+        masterGain.gain.value =
+          0.65;
+
+        masterGain.connect(
+          audioContext.destination
+        );
       }
+
 
       if (
         audioContext.state ===
         "suspended"
       ) {
-        audioContext.resume();
+
+        audioContext.resume()
+          .catch(() => {});
       }
+
+
+      pianoReady = true;
 
       return audioContext;
 
     } catch (error) {
 
+      console.log(
+        "Piano sound unavailable"
+      );
+
       return null;
     }
   }
 
+
+  /* -------------------------------------------------------
+     ENABLE PIANO AFTER USER TOUCH/CLICK
+  ------------------------------------------------------- */
+
+  function enablePianoSound() {
+
+    const ctx =
+      getAudioContext();
+
+    if (!ctx) {
+      return;
+    }
+
+
+    if (
+      ctx.state ===
+      "suspended"
+    ) {
+
+      ctx.resume()
+        .catch(() => {});
+    }
+
+
+    pianoReady = true;
+  }
+
+
+  /* -------------------------------------------------------
+     PIANO NOTE ENGINE
+  ------------------------------------------------------- */
+
+  function pianoNote(
+    frequency,
+    duration = 0.45,
+    volume = 0.16,
+    delay = 0
+  ) {
+
+    try {
+
+      if (!soundEnabled) {
+        return;
+      }
+
+
+      const ctx =
+        getAudioContext();
+
+      if (!ctx || !masterGain) {
+        return;
+      }
+
+
+      const startTime =
+        ctx.currentTime +
+        delay;
+
+
+      /*
+        Multiple harmonics create
+        a warmer piano-like sound.
+      */
+
+      const partials = [
+
+        {
+          multiplier: 1,
+          gain: 1
+        },
+
+        {
+          multiplier: 2,
+          gain: 0.28
+        },
+
+        {
+          multiplier: 3,
+          gain: 0.12
+        },
+
+        {
+          multiplier: 4,
+          gain: 0.05
+        }
+
+      ];
+
+
+      partials.forEach(
+        partial => {
+
+          const oscillator =
+            ctx.createOscillator();
+
+          const gain =
+            ctx.createGain();
+
+
+          oscillator.type =
+            "sine";
+
+
+          oscillator.frequency.setValueAtTime(
+            frequency *
+            partial.multiplier,
+            startTime
+          );
+
+
+          oscillator.frequency.exponentialRampToValueAtTime(
+            frequency *
+            partial.multiplier *
+            0.997,
+            startTime + 0.08
+          );
+
+
+          const partialVolume =
+            volume *
+            partial.gain;
+
+
+          /*
+            Piano envelope:
+            quick attack
+            natural decay
+            soft release
+          */
+
+          gain.gain.setValueAtTime(
+            0.0001,
+            startTime
+          );
+
+
+          gain.gain.exponentialRampToValueAtTime(
+            Math.max(
+              0.0002,
+              partialVolume
+            ),
+            startTime + 0.008
+          );
+
+
+          gain.gain.exponentialRampToValueAtTime(
+            Math.max(
+              0.00015,
+              partialVolume * 0.42
+            ),
+            startTime +
+            Math.min(
+              0.18,
+              duration * 0.4
+            )
+          );
+
+
+          gain.gain.exponentialRampToValueAtTime(
+            0.0001,
+            startTime + duration
+          );
+
+
+          oscillator.connect(
+            gain
+          );
+
+          gain.connect(
+            masterGain
+          );
+
+
+          oscillator.start(
+            startTime
+          );
+
+
+          oscillator.stop(
+            startTime +
+            duration +
+            0.03
+          );
+
+        }
+      );
+
+    } catch (error) {
+
+      console.log(
+        "Piano note error"
+      );
+    }
+  }
+
+
+  /* -------------------------------------------------------
+     PIANO NOTES
+  ------------------------------------------------------- */
+
+  const PIANO = {
+
+    C3: 130.81,
+    D3: 146.83,
+    E3: 164.81,
+    F3: 174.61,
+    G3: 196.00,
+    A3: 220.00,
+    B3: 246.94,
+
+    C4: 261.63,
+    D4: 293.66,
+    E4: 329.63,
+    F4: 349.23,
+    G4: 392.00,
+    A4: 440.00,
+    B4: 493.88,
+
+    C5: 523.25,
+    D5: 587.33,
+    E5: 659.25,
+    F5: 698.46,
+    G5: 783.99,
+    A5: 880.00,
+    B5: 987.77,
+
+    C6: 1046.50
+
+  };
+
+
+  /* -------------------------------------------------------
+     SOFT CLICK
+  ------------------------------------------------------- */
+
+  function pianoClick() {
+
+    enablePianoSound();
+
+    pianoNote(
+      PIANO.C5,
+      0.28,
+      0.075
+    );
+  }
+
+
+  /* -------------------------------------------------------
+     GAME START
+  ------------------------------------------------------- */
+
+  function gameStartSound() {
+
+    enablePianoSound();
+
+    pianoNote(
+      PIANO.C5,
+      0.30,
+      0.09,
+      0
+    );
+
+    pianoNote(
+      PIANO.G5,
+      0.35,
+      0.10,
+      0.12
+    );
+
+    pianoNote(
+      PIANO.C6,
+      0.45,
+      0.12,
+      0.24
+    );
+  }
+
+
+  /* -------------------------------------------------------
+     CORRECT ANSWER
+     C - E - G - C
+  ------------------------------------------------------- */
+
+  function correctSound() {
+
+    enablePianoSound();
+
+    pianoNote(
+      PIANO.C5,
+      0.42,
+      0.15,
+      0
+    );
+
+    pianoNote(
+      PIANO.E5,
+      0.42,
+      0.13,
+      0.10
+    );
+
+    pianoNote(
+      PIANO.G5,
+      0.48,
+      0.14,
+      0.20
+    );
+
+    pianoNote(
+      PIANO.C6,
+      0.65,
+      0.17,
+      0.32
+    );
+  }
+
+
+  /* -------------------------------------------------------
+     WRONG ANSWER
+  ------------------------------------------------------- */
+
+  function wrongSound() {
+
+    enablePianoSound();
+
+    pianoNote(
+      PIANO.E4,
+      0.40,
+      0.13,
+      0
+    );
+
+    pianoNote(
+      PIANO.C4,
+      0.55,
+      0.12,
+      0.16
+    );
+
+    pianoNote(
+      PIANO.A3,
+      0.65,
+      0.10,
+      0.32
+    );
+  }
+
+
+  /* -------------------------------------------------------
+     REWARD
+     Happy piano melody
+  ------------------------------------------------------- */
+
+  function rewardSound() {
+
+    enablePianoSound();
+
+    pianoNote(
+      PIANO.C5,
+      0.42,
+      0.14,
+      0
+    );
+
+    pianoNote(
+      PIANO.E5,
+      0.42,
+      0.14,
+      0.10
+    );
+
+    pianoNote(
+      PIANO.G5,
+      0.42,
+      0.15,
+      0.20
+    );
+
+    pianoNote(
+      PIANO.C6,
+      0.70,
+      0.18,
+      0.32
+    );
+
+    pianoNote(
+      PIANO.G5,
+      0.40,
+      0.11,
+      0.58
+    );
+
+    pianoNote(
+      PIANO.C6,
+      0.80,
+      0.18,
+      0.70
+    );
+  }
+
+
+  /* -------------------------------------------------------
+     COIN SOUND
+  ------------------------------------------------------- */
+
+  function coinSound() {
+
+    enablePianoSound();
+
+    pianoNote(
+      PIANO.E5,
+      0.30,
+      0.10,
+      0
+    );
+
+    pianoNote(
+      PIANO.G5,
+      0.35,
+      0.11,
+      0.09
+    );
+
+    pianoNote(
+      PIANO.B5,
+      0.45,
+      0.12,
+      0.18
+    );
+  }
+
+
+  /* -------------------------------------------------------
+     LEVEL UP SOUND
+  ------------------------------------------------------- */
+
+  function levelUpSound() {
+
+    enablePianoSound();
+
+    pianoNote(
+      PIANO.C5,
+      0.35,
+      0.12,
+      0
+    );
+
+    pianoNote(
+      PIANO.E5,
+      0.35,
+      0.12,
+      0.10
+    );
+
+    pianoNote(
+      PIANO.G5,
+      0.35,
+      0.13,
+      0.20
+    );
+
+    pianoNote(
+      PIANO.B5,
+      0.45,
+      0.14,
+      0.30
+    );
+
+    pianoNote(
+      PIANO.C6,
+      0.90,
+      0.20,
+      0.45
+    );
+  }
+
+
+  /* -------------------------------------------------------
+     OLD playTone COMPATIBILITY
+  ------------------------------------------------------- */
 
   function playTone(
     frequency,
@@ -170,12 +684,29 @@ document.addEventListener("DOMContentLoaded", () => {
     volume = 0.07
   ) {
 
+    if (
+      type === "sine"
+    ) {
+
+      pianoNote(
+        frequency,
+        duration,
+        volume
+      );
+
+      return;
+    }
+
+
     try {
 
       const ctx =
         getAudioContext();
 
-      if (!ctx) return;
+      if (!ctx) {
+        return;
+      }
+
 
       const oscillator =
         ctx.createOscillator();
@@ -183,31 +714,44 @@ document.addEventListener("DOMContentLoaded", () => {
       const gain =
         ctx.createGain();
 
-      oscillator.type = type;
+
+      oscillator.type =
+        type;
+
 
       oscillator.frequency.value =
         frequency;
+
 
       gain.gain.setValueAtTime(
         volume,
         ctx.currentTime
       );
 
+
       gain.gain.exponentialRampToValueAtTime(
         0.001,
-        ctx.currentTime + duration
+        ctx.currentTime +
+        duration
       );
 
-      oscillator.connect(gain);
+
+      oscillator.connect(
+        gain
+      );
+
 
       gain.connect(
         ctx.destination
       );
 
+
       oscillator.start();
 
+
       oscillator.stop(
-        ctx.currentTime + duration
+        ctx.currentTime +
+        duration
       );
 
     } catch (error) {
@@ -219,67 +763,22 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 
-  function correctSound() {
+  /* -------------------------------------------------------
+     BROWSER AUDIO UNLOCK
+  ------------------------------------------------------- */
 
-    playTone(
-      523,
-      0.12
-    );
+  document.addEventListener(
+    "pointerdown",
+    () => {
 
-    setTimeout(
-      () => playTone(659, 0.12),
-      100
-    );
+      enablePianoSound();
 
-    setTimeout(
-      () => playTone(784, 0.16),
-      200
-    );
-  }
-
-
-  function wrongSound() {
-
-    playTone(
-      220,
-      0.18,
-      "triangle"
-    );
-
-    setTimeout(
-      () =>
-        playTone(
-          165,
-          0.22,
-          "triangle"
-        ),
-      130
-    );
-  }
-
-
-  function rewardSound() {
-
-    playTone(
-      523,
-      0.1
-    );
-
-    setTimeout(
-      () => playTone(659, 0.1),
-      100
-    );
-
-    setTimeout(
-      () => playTone(784, 0.1),
-      200
-    );
-
-    setTimeout(
-      () => playTone(1047, 0.25),
-      300
-    );
-  }
+    },
+    {
+      once: true,
+      passive: true
+    }
+  );
 
 
   /* =======================================================
@@ -509,13 +1008,14 @@ document.addEventListener("DOMContentLoaded", () => {
     sound = true
   ) {
 
-    player.coins += amount;
+    player.coins +=
+      amount;
 
     updatePlayerUI();
 
     if (sound) {
 
-      rewardSound();
+      coinSound();
     }
 
     showToast(
@@ -530,14 +1030,34 @@ document.addEventListener("DOMContentLoaded", () => {
     sound = false
   ) {
 
-    player.xp += amount;
+    const oldLevel =
+      player.level;
+
+    player.xp +=
+      amount;
 
     updatePlayerUI();
 
-    if (sound) {
+
+    if (
+      player.level >
+      oldLevel
+    ) {
+
+      levelUpSound();
+
+      createConfetti();
+
+      showToast(
+        "🎊",
+        `Level ${player.level}!`
+      );
+
+    } else if (sound) {
 
       correctSound();
     }
+
 
     showToast(
       "⭐",
@@ -571,7 +1091,8 @@ document.addEventListener("DOMContentLoaded", () => {
       player.dailyRewardClaimed =
         true;
 
-      player.coins += 50;
+      player.coins +=
+        50;
 
       rewardSound();
 
@@ -665,7 +1186,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!container) return;
 
 
-    container.innerHTML = "";
+    container.innerHTML =
+      "";
 
 
     const icons = [
@@ -752,9 +1274,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!modal) return;
 
+
     modal.classList.add(
       "open"
     );
+
 
     document.body.classList.add(
       "modal-open"
@@ -768,6 +1292,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById(id);
 
     if (!modal) return;
+
 
     modal.classList.remove(
       "open"
@@ -833,6 +1358,9 @@ document.addEventListener("DOMContentLoaded", () => {
         "click",
         () => {
 
+          pianoClick();
+
+
           if (playerName) {
 
             playerName.value =
@@ -870,6 +1398,9 @@ document.addEventListener("DOMContentLoaded", () => {
             "click",
             () => {
 
+              pianoClick();
+
+
               $$(".avatar-option")
                 .forEach(
                   btn =>
@@ -900,6 +1431,9 @@ document.addEventListener("DOMContentLoaded", () => {
       saveProfile.addEventListener(
         "click",
         () => {
+
+          pianoClick();
+
 
           if (playerName) {
 
@@ -947,6 +1481,9 @@ document.addEventListener("DOMContentLoaded", () => {
           button.addEventListener(
             "click",
             () => {
+
+              pianoClick();
+
 
               const id =
                 button.dataset.close;
@@ -1051,13 +1588,12 @@ document.addEventListener("DOMContentLoaded", () => {
         question:
           "What is 5 + 3?",
 
-        options:
-          [
-            "6",
-            "7",
-            "8",
-            "9"
-          ],
+        options: [
+          "6",
+          "7",
+          "8",
+          "9"
+        ],
 
         answer:
           "8"
@@ -1067,13 +1603,12 @@ document.addEventListener("DOMContentLoaded", () => {
         question:
           "What is 10 - 4?",
 
-        options:
-          [
-            "5",
-            "6",
-            "7",
-            "8"
-          ],
+        options: [
+          "5",
+          "6",
+          "7",
+          "8"
+        ],
 
         answer:
           "6"
@@ -1083,13 +1618,12 @@ document.addEventListener("DOMContentLoaded", () => {
         question:
           "What is 3 × 4?",
 
-        options:
-          [
-            "7",
-            "10",
-            "12",
-            "14"
-          ],
+        options: [
+          "7",
+          "10",
+          "12",
+          "14"
+        ],
 
         answer:
           "12"
@@ -1104,13 +1638,12 @@ document.addEventListener("DOMContentLoaded", () => {
         question:
           "Which word is a fruit?",
 
-        options:
-          [
-            "Apple",
-            "Chair",
-            "Book",
-            "Table"
-          ],
+        options: [
+          "Apple",
+          "Chair",
+          "Book",
+          "Table"
+        ],
 
         answer:
           "Apple"
@@ -1120,13 +1653,12 @@ document.addEventListener("DOMContentLoaded", () => {
         question:
           "Which one is an animal?",
 
-        options:
-          [
-            "Dog",
-            "Car",
-            "Pencil",
-            "House"
-          ],
+        options: [
+          "Dog",
+          "Car",
+          "Pencil",
+          "House"
+        ],
 
         answer:
           "Dog"
@@ -1136,13 +1668,12 @@ document.addEventListener("DOMContentLoaded", () => {
         question:
           "What is the opposite of BIG?",
 
-        options:
-          [
-            "Tall",
-            "Small",
-            "Fast",
-            "Long"
-          ],
+        options: [
+          "Tall",
+          "Small",
+          "Fast",
+          "Long"
+        ],
 
         answer:
           "Small"
@@ -1157,13 +1688,12 @@ document.addEventListener("DOMContentLoaded", () => {
         question:
           "Which planet do we live on?",
 
-        options:
-          [
-            "Mars",
-            "Earth",
-            "Venus",
-            "Jupiter"
-          ],
+        options: [
+          "Mars",
+          "Earth",
+          "Venus",
+          "Jupiter"
+        ],
 
         answer:
           "Earth"
@@ -1173,13 +1703,12 @@ document.addEventListener("DOMContentLoaded", () => {
         question:
           "What do plants need to grow?",
 
-        options:
-          [
-            "Sunlight",
-            "Plastic",
-            "Metal",
-            "Glass"
-          ],
+        options: [
+          "Sunlight",
+          "Plastic",
+          "Metal",
+          "Glass"
+        ],
 
         answer:
           "Sunlight"
@@ -1189,13 +1718,12 @@ document.addEventListener("DOMContentLoaded", () => {
         question:
           "Which animal gives us milk?",
 
-        options:
-          [
-            "Cow",
-            "Lion",
-            "Tiger",
-            "Eagle"
-          ],
+        options: [
+          "Cow",
+          "Lion",
+          "Tiger",
+          "Eagle"
+        ],
 
         answer:
           "Cow"
@@ -1210,13 +1738,12 @@ document.addEventListener("DOMContentLoaded", () => {
         question:
           "How many days are in a week?",
 
-        options:
-          [
-            "5",
-            "6",
-            "7",
-            "8"
-          ],
+        options: [
+          "5",
+          "6",
+          "7",
+          "8"
+        ],
 
         answer:
           "7"
@@ -1226,13 +1753,12 @@ document.addEventListener("DOMContentLoaded", () => {
         question:
           "What color is the sky on a clear day?",
 
-        options:
-          [
-            "Blue",
-            "Green",
-            "Pink",
-            "Black"
-          ],
+        options: [
+          "Blue",
+          "Green",
+          "Pink",
+          "Black"
+        ],
 
         answer:
           "Blue"
@@ -1242,13 +1768,12 @@ document.addEventListener("DOMContentLoaded", () => {
         question:
           "How many legs does a spider have?",
 
-        options:
-          [
-            "4",
-            "6",
-            "8",
-            "10"
-          ],
+        options: [
+          "4",
+          "6",
+          "8",
+          "10"
+        ],
 
         answer:
           "8"
@@ -1266,6 +1791,9 @@ document.addEventListener("DOMContentLoaded", () => {
   function startQuiz(
     type = "general"
   ) {
+
+    gameStartSound();
+
 
     const questions =
       quizData[type] ||
@@ -1336,6 +1864,9 @@ document.addEventListener("DOMContentLoaded", () => {
               "click",
               () => {
 
+                pianoClick();
+
+
                 const selected =
                   button.dataset.answer;
 
@@ -1349,7 +1880,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 ) {
 
                   score++;
-
 
                   correctSound();
 
@@ -1430,6 +1960,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       completeActivity();
 
+      rewardSound();
+
 
       openGameModal(
         "🏆 Quiz Complete!",
@@ -1481,10 +2013,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         done.addEventListener(
           "click",
-          () =>
+          () => {
+
+            pianoClick();
+
             closeModal(
               "gameModal"
-            )
+            );
+          }
         );
       }
     }
@@ -1499,6 +2035,9 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   function startMemoryGame() {
+
+    gameStartSound();
+
 
     const symbols = [
 
@@ -1578,6 +2117,9 @@ document.addEventListener("DOMContentLoaded", () => {
           card.addEventListener(
             "click",
             () => {
+
+              pianoClick();
+
 
               if (
                 lock ||
@@ -1723,6 +2265,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function startWordGame() {
 
+    gameStartSound();
+
+
     const words = [
 
       {
@@ -1821,6 +2366,9 @@ document.addEventListener("DOMContentLoaded", () => {
             "click",
             () => {
 
+              pianoClick();
+
+
               if (
                 answer.length >=
                 item.word.length
@@ -1867,6 +2415,9 @@ document.addEventListener("DOMContentLoaded", () => {
         "click",
         () => {
 
+          pianoClick();
+
+
           if (
             answer ===
             item.word
@@ -1885,6 +2436,7 @@ document.addEventListener("DOMContentLoaded", () => {
             );
 
             completeActivity();
+
 
             showToast(
               "🎉",
@@ -1923,6 +2475,9 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   function startMathGame() {
+
+    gameStartSound();
+
 
     const first =
       Math.floor(
@@ -2073,6 +2628,9 @@ document.addEventListener("DOMContentLoaded", () => {
             "click",
             () => {
 
+              pianoClick();
+
+
               const selected =
                 Number(
                   button.dataset.answer
@@ -2161,6 +2719,9 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   function startColorGame() {
+
+    gameStartSound();
+
 
     const colors = [
 
@@ -2290,6 +2851,9 @@ document.addEventListener("DOMContentLoaded", () => {
             "click",
             () => {
 
+              pianoClick();
+
+
               const selected =
                 button.dataset.color;
 
@@ -2374,6 +2938,9 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   function startNumberGame() {
+
+    gameStartSound();
+
 
     const target =
       Math.floor(
@@ -2463,6 +3030,9 @@ document.addEventListener("DOMContentLoaded", () => {
           button.addEventListener(
             "click",
             () => {
+
+              pianoClick();
+
 
               const selected =
                 Number(
@@ -2718,8 +3288,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
       if (
-        game ===
-        "spelling"
+        game === "spelling"
       ) {
 
         event.preventDefault();
@@ -2729,8 +3298,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
       else if (
-        game ===
-        "counting"
+        game === "counting"
       ) {
 
         event.preventDefault();
@@ -2740,8 +3308,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
       else if (
-        game ===
-        "shapes"
+        game === "shapes"
       ) {
 
         event.preventDefault();
@@ -2751,8 +3318,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
       else if (
-        game ===
-        "animals"
+        game === "animals"
       ) {
 
         event.preventDefault();
@@ -2762,8 +3328,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
       else if (
-        game ===
-        "capitals"
+        game === "capitals"
       ) {
 
         event.preventDefault();
@@ -2773,8 +3338,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
       else if (
-        game ===
-        "puzzle"
+        game === "puzzle"
       ) {
 
         event.preventDefault();
@@ -2784,8 +3348,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
       else if (
-        game ===
-        "timed"
+        game === "timed"
       ) {
 
         event.preventDefault();
@@ -2841,6 +3404,9 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   function startSpellingGame() {
+
+    gameStartSound();
+
 
     const words = [
 
@@ -2955,6 +3521,9 @@ document.addEventListener("DOMContentLoaded", () => {
       "click",
       () => {
 
+        pianoClick();
+
+
         const answer =
           input.value
             .trim()
@@ -3018,6 +3587,9 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   function startCountingGame() {
+
+    gameStartSound();
+
 
     const count =
       Math.floor(
@@ -3145,6 +3717,9 @@ document.addEventListener("DOMContentLoaded", () => {
             "click",
             () => {
 
+              pianoClick();
+
+
               if (
                 Number(
                   button.dataset.answer
@@ -3206,6 +3781,9 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   function startShapesGame() {
+
+    gameStartSound();
+
 
     const shapes = [
 
@@ -3308,6 +3886,9 @@ document.addEventListener("DOMContentLoaded", () => {
             "click",
             () => {
 
+              pianoClick();
+
+
               if (
                 button.dataset.shape ===
                 target.name
@@ -3368,6 +3949,9 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   function startAnimalsGame() {
+
+    gameStartSound();
+
 
     const questions = [
 
@@ -3498,6 +4082,9 @@ document.addEventListener("DOMContentLoaded", () => {
             "click",
             () => {
 
+              pianoClick();
+
+
               if (
                 button.dataset.answer ===
                 item.answer
@@ -3558,6 +4145,9 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   function startCapitalsGame() {
+
+    gameStartSound();
+
 
     const countries = [
 
@@ -3684,6 +4274,9 @@ document.addEventListener("DOMContentLoaded", () => {
             "click",
             () => {
 
+              pianoClick();
+
+
               if (
                 button.dataset.answer ===
                 item.capital
@@ -3744,6 +4337,9 @@ document.addEventListener("DOMContentLoaded", () => {
   ======================================================= */
 
   function startPuzzleGame() {
+
+    gameStartSound();
+
 
     const puzzles = [
 
@@ -3867,6 +4463,9 @@ document.addEventListener("DOMContentLoaded", () => {
             "click",
             () => {
 
+              pianoClick();
+
+
               if (
                 button.dataset.answer ===
                 item.answer
@@ -3931,6 +4530,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   function startTimedGame() {
+
+    gameStartSound();
+
 
     clearInterval(
       timedInterval
@@ -4064,6 +4666,9 @@ document.addEventListener("DOMContentLoaded", () => {
             button.addEventListener(
               "click",
               () => {
+
+                pianoClick();
+
 
                 const selected =
                   Number(
@@ -4243,10 +4848,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       done.addEventListener(
         "click",
-        () =>
+        () => {
+
+          pianoClick();
+
           closeModal(
             "gameModal"
-          )
+          );
+        }
       );
     }
   }
@@ -4273,6 +4882,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const game =
         button.dataset.game;
+
+
+      /* 🎹 Play game-start piano */
+
+      gameStartSound();
 
 
       if (
@@ -4351,6 +4965,9 @@ document.addEventListener("DOMContentLoaded", () => {
       event.preventDefault();
 
 
+      pianoClick();
+
+
       startQuiz(
         button.dataset.quiz
       );
@@ -4371,6 +4988,9 @@ document.addEventListener("DOMContentLoaded", () => {
     continueBtn.addEventListener(
       "click",
       () => {
+
+        pianoClick();
+
 
         const learn =
           $("#learn");
@@ -4401,9 +5021,14 @@ document.addEventListener("DOMContentLoaded", () => {
       "click",
       () => {
 
+        pianoClick();
+
+
         if (
           player.dailyProgress >= 3
         ) {
+
+          rewardSound();
 
           showToast(
             "🏆",
@@ -4433,6 +5058,9 @@ document.addEventListener("DOMContentLoaded", () => {
         link.addEventListener(
           "click",
           () => {
+
+            pianoClick();
+
 
             $$(".nav-link")
               .forEach(
@@ -4721,6 +5349,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   updatePlayerUI();
-
 
 });
