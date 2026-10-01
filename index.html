@@ -1,287 +1,223 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+  <title>WonderKids — Learn • Play • Grow</title>
+  <meta name="description" content="WonderKids is a fun interactive learning and games platform for children.">
 
-  <meta
-    name="description"
-    content="WonderKids - A fun educational learning and games platform for kids."
-  >
-
-  <title>WonderKids | Learn • Play • Grow</title>
-
-  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <link
-    href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Fredoka:wght@400;500;600;700&display=swap"
-    rel="stylesheet"
-  >
-
-  <!-- Main CSS -->
   <link rel="stylesheet" href="./style.css">
 </head>
 
 <body>
 
-  <!-- =====================================================
-       HEADER
-       ===================================================== -->
+<!-- ================= HEADER ================= -->
 
-  <header class="site-header">
+<header class="site-header">
+  <div class="container nav-wrap">
 
-    <div class="container header-inner">
+    <a href="#home" class="brand">
+      <div class="brand-icon">🌈</div>
+      <div>
+        <div class="brand-name">WonderKids</div>
+        <div class="brand-tagline">Learn • Play • Grow</div>
+      </div>
+    </a>
 
-      <!-- Logo -->
-      <a href="#home" class="logo">
+    <nav class="main-nav">
+      <a href="#home" class="nav-link active">Home</a>
+      <a href="#learn" class="nav-link">Learn</a>
+      <a href="#games" class="nav-link">Games</a>
+      <a href="#rewards" class="nav-link">Rewards</a>
+    </nav>
 
-        <div class="logo-icon">
-          🌈
-        </div>
+    <div class="player-stats">
+      <div class="stat-pill coins">
+        <span>🪙</span>
+        <strong id="coinCount">420</strong>
+      </div>
 
-        <div class="logo-text">
-          <strong>WonderKids</strong>
-          <span>Learn • Play • Grow</span>
-        </div>
+      <div class="stat-pill hearts">
+        <span>❤️</span>
+        <strong id="heartCount">5</strong>
+      </div>
 
-      </a>
+      <button class="profile-btn" id="profileBtn" aria-label="Open profile">
+        🧒
+      </button>
+    </div>
+
+  </div>
+</header>
 
 
-      <!-- Navigation -->
-      <nav class="main-nav">
+<main>
 
-        <a href="#home" class="nav-link active">
-          🏠 Home
+<!-- ================= HERO ================= -->
+
+<section id="home" class="hero-section">
+
+  <div class="floating-shape shape-one">⭐</div>
+  <div class="floating-shape shape-two">✨</div>
+  <div class="floating-shape shape-three">🌈</div>
+
+  <div class="hero-cloud cloud-one">☁️</div>
+  <div class="hero-cloud cloud-two">☁️</div>
+  <div class="hero-cloud cloud-three">☁️</div>
+
+  <div class="container hero-grid">
+
+    <div class="hero-content">
+
+      <div class="welcome-badge">
+        ✨ Welcome, <span id="heroName">Young Explorer</span>!
+      </div>
+
+      <h1>
+        Learn something new.
+        <span>Have lots of fun!</span>
+      </h1>
+
+      <p class="hero-description">
+        Explore exciting lessons, play clever games, earn coins,
+        unlock badges and become a WonderKid!
+      </p>
+
+      <div class="hero-buttons">
+        <a href="#learn" class="btn btn-primary">
+          🚀 Start Learning
         </a>
 
-        <a href="#learn" class="nav-link">
-          📚 Learn
+        <a href="#games" class="btn btn-secondary">
+          🎮 Play Games
         </a>
+      </div>
 
-        <a href="#games" class="nav-link">
-          🎮 Games
-        </a>
+      <div class="feature-chips">
+        <div class="feature-chip">📚 <span>Fun Learning</span></div>
+        <div class="feature-chip">🎮 <span>Cool Games</span></div>
+        <div class="feature-chip">🏆 <span>Earn Rewards</span></div>
+      </div>
 
-        <a href="#rewards" class="nav-link">
-          🏆 Rewards
-        </a>
-
-      </nav>
+    </div>
 
 
-      <!-- Player Stats -->
-      <div class="player-stats">
+    <!-- MASCOT -->
 
-        <div class="stat-item">
-          <span>🪙</span>
-          <strong id="coinCount">420</strong>
+    <div class="hero-art">
+
+      <div class="sun-circle"></div>
+
+      <div class="mascot-card">
+
+        <div class="spark spark-one">✦</div>
+        <div class="spark spark-two">✦</div>
+        <div class="spark spark-three">✦</div>
+
+        <div class="mascot">
+
+          <div class="mascot-hair"></div>
+
+          <div class="mascot-face">
+
+            <div class="eye eye-left"></div>
+            <div class="eye eye-right"></div>
+
+            <div class="cheek cheek-left"></div>
+            <div class="cheek cheek-right"></div>
+
+            <div class="mouth"></div>
+
+          </div>
+
+          <div class="mascot-body">
+            <div class="shirt-star">★</div>
+          </div>
+
+          <div class="mascot-arm arm-left"></div>
+          <div class="mascot-arm arm-right"></div>
+
         </div>
 
-        <div class="stat-item">
-          <span>❤️</span>
-          <strong id="heartCount">5</strong>
+        <div class="mascot-message">
+          <strong>Let's learn! 🚀</strong>
+          <span>You're doing great ⭐</span>
         </div>
-
-        <div class="stat-item">
-          <span>⭐</span>
-          <strong id="xpCount">2680</strong>
-        </div>
-
-        <button
-          type="button"
-          class="profile-button"
-          id="profileBtn"
-          aria-label="Open profile"
-        >
-          <span id="playerAvatar">🧒</span>
-        </button>
 
       </div>
 
     </div>
 
-  </header>
+  </div>
+
+</section>
 
 
-  <!-- =====================================================
-       MAIN
-       ===================================================== -->
+<!-- ================= CONTINUE LEARNING ================= -->
 
-  <main id="home">
+<section class="continue-section">
 
+  <div class="container">
 
-    <!-- ===================================================
-         HERO
-         =================================================== -->
+    <div class="continue-card">
 
-    <section class="hero-section">
+      <div class="continue-icon">📚</div>
 
-      <div class="container hero-grid">
-
-        <div class="hero-content">
-
-          <div class="hero-badge">
-            ✨ Welcome, Little Explorer!
-          </div>
-
-          <h1>
-            Learn Something New
-            <span>Every Day!</span>
-          </h1>
-
-          <p>
-            Fun lessons, exciting games and awesome rewards
-            are waiting for you.
-          </p>
-
-          <div class="hero-buttons">
-
-            <button
-              type="button"
-              class="primary-btn"
-              id="continueBtn"
-            >
-              🚀 Continue Learning
-            </button>
-
-            <a
-              href="#games"
-              class="secondary-btn"
-            >
-              🎮 Play Games
-            </a>
-
-          </div>
-
-        </div>
-
-
-        <div class="hero-visual">
-
-          <div class="hero-mascot">
-            🧒
-          </div>
-
-          <div class="hero-star star-one">
-            ⭐
-          </div>
-
-          <div class="hero-star star-two">
-            ✨
-          </div>
-
-          <div class="hero-cloud cloud-one">
-            ☁️
-          </div>
-
-          <div class="hero-cloud cloud-two">
-            ☁️
-          </div>
-
-        </div>
-
+      <div class="continue-content">
+        <span class="small-label">CONTINUE LEARNING</span>
+        <h2>Ready for your next adventure?</h2>
+        <p id="continueText">
+          Pick a subject and keep growing your WonderKid skills!
+        </p>
       </div>
 
-    </section>
+      <button class="btn btn-primary" id="continueBtn">
+        Continue →
+      </button>
+
+    </div>
+
+  </div>
+
+</section>
 
 
-    <!-- ===================================================
-         CONTINUE LEARNING
-         =================================================== -->
+<!-- ================= PROGRESS ================= -->
 
-    <section class="section">
+<section class="progress-section">
 
-      <div class="container">
+  <div class="container">
 
-        <div class="continue-card">
+    <div class="progress-card">
 
-          <div class="continue-icon">
-            📖
-          </div>
+      <div class="progress-left">
 
-          <div class="continue-content">
-
-            <span class="section-label">
-              Continue Learning
-            </span>
-
-            <h2>
-              Let's learn something amazing!
-            </h2>
-
-            <p>
-              Pick a subject and start your next adventure.
-            </p>
-
-          </div>
-
-          <button
-            type="button"
-            class="primary-btn"
-            id="startLearningBtn"
-          >
-            Start Learning →
-          </button>
-
+        <div class="level-circle">
+          <span>LV</span>
+          <strong id="levelNumber">3</strong>
         </div>
 
-      </div>
+        <div class="journey-info">
 
-    </section>
+          <p class="small-label">YOUR JOURNEY</p>
 
+          <h3>
+            WonderKid Level
+            <span id="levelText">3</span>
+          </h3>
 
-    <!-- ===================================================
-         PROGRESS
-         =================================================== -->
+          <div class="xp-row">
 
-    <section class="section">
-
-      <div class="container">
-
-        <div class="progress-card">
-
-          <div class="progress-header">
-
-            <div>
-              <span class="section-label">
-                Your Progress
-              </span>
-
-              <h2>
-                Level <span id="levelCount">3</span>
-              </h2>
+            <div class="xp-bar">
+              <div class="xp-fill" id="xpFill"></div>
             </div>
 
-            <div class="streak-box">
-              🔥
-              <strong id="streakCount">4</strong>
-              <span>day streak</span>
-            </div>
-
-          </div>
-
-
-          <div class="xp-progress">
-
-            <div class="xp-progress-top">
-              <span>XP Progress</span>
-              <span>Level <span id="levelCount">3</span></span>
-            </div>
-
-            <div class="progress-track">
-              <div
-                class="progress-fill"
-                id="xpBar"
-                style="width:68%"
-              ></div>
-            </div>
+            <span id="xpText">680 / 1000 XP</span>
 
           </div>
 
@@ -289,737 +225,585 @@
 
       </div>
 
-    </section>
 
+      <div class="progress-right">
 
-    <!-- ===================================================
-         DAILY CHALLENGE
-         =================================================== -->
+        <div class="streak-box">
+          <span class="streak-icon">🔥</span>
 
-    <section class="section">
-
-      <div class="container">
-
-        <div class="challenge-card">
-
-          <div class="challenge-left">
-
-            <div class="challenge-icon">
-              🎯
-            </div>
-
-            <div>
-
-              <span class="section-label">
-                Daily Mission
-              </span>
-
-              <h2>
-                Complete 3 activities today!
-              </h2>
-
-              <p>
-                Progress:
-                <strong id="dailyProgress">0/3</strong>
-              </p>
-
-            </div>
-
+          <div>
+            <strong id="streakCount">4</strong>
+            <span>day streak</span>
           </div>
+        </div>
 
+        <div class="mini-stat">
+          <span>🎯</span>
 
-          <button
-            type="button"
-            class="primary-btn"
-            id="challengeBtn"
-          >
-            Start Challenge
-          </button>
-
+          <div>
+            <strong id="dailyProgressText">0%</strong>
+            <small>Daily Goal</small>
+          </div>
         </div>
 
       </div>
 
-    </section>
+    </div>
+
+  </div>
+
+</section>
 
 
-    <!-- ===================================================
-         LEARN
-         =================================================== -->
+<!-- ================= DAILY MISSION ================= -->
 
-    <section
-      class="section"
-      id="learn"
-    >
+<section class="challenge-section">
 
-      <div class="container">
+  <div class="container">
 
-        <div class="section-heading">
+    <div class="challenge-card">
 
-          <span class="section-label">
-            Explore & Learn
-          </span>
-
-          <h2>
-            Choose Your Adventure
-          </h2>
-
-          <p>
-            Learn new things with fun interactive quizzes.
-          </p>
-
-        </div>
-
-
-        <div class="subject-grid">
-
-
-          <!-- MATH -->
-          <article class="subject-card math-card">
-
-            <div class="subject-icon">
-              ➕
-            </div>
-
-            <h3>
-              Math
-            </h3>
-
-            <p>
-              Numbers, counting and simple calculations.
-            </p>
-
-            <button
-              type="button"
-              class="subject-btn"
-              data-quiz="math"
-            >
-              Start Math →
-            </button>
-
-          </article>
-
-
-          <!-- ENGLISH -->
-          <article class="subject-card english-card">
-
-            <div class="subject-icon">
-              🔤
-            </div>
-
-            <h3>
-              English
-            </h3>
-
-            <p>
-              Words, spelling and vocabulary.
-            </p>
-
-            <button
-              type="button"
-              class="subject-btn"
-              data-quiz="english"
-            >
-              Start English →
-            </button>
-
-          </article>
-
-
-          <!-- SCIENCE -->
-          <article class="subject-card science-card">
-
-            <div class="subject-icon">
-              🔬
-            </div>
-
-            <h3>
-              Science
-            </h3>
-
-            <p>
-              Discover animals, nature and our planet.
-            </p>
-
-            <button
-              type="button"
-              class="subject-btn"
-              data-quiz="science"
-            >
-              Start Science →
-            </button>
-
-          </article>
-
-
-          <!-- GENERAL -->
-          <article class="subject-card general-card">
-
-            <div class="subject-icon">
-              🌎
-            </div>
-
-            <h3>
-              General Knowledge
-            </h3>
-
-            <p>
-              Fun facts and everyday knowledge.
-            </p>
-
-            <button
-              type="button"
-              class="subject-btn"
-              data-quiz="general"
-            >
-              Start Quiz →
-            </button>
-
-          </article>
-
-        </div>
-
+      <div class="challenge-icon">
+        🎯
       </div>
 
-    </section>
+      <div class="challenge-content">
 
-
-    <!-- ===================================================
-         GAMES
-         =================================================== -->
-
-    <section
-      class="section games-section"
-      id="games"
-    >
-
-      <div class="container">
-
-        <div class="section-heading">
-
-          <span class="section-label">
-            Fun Zone
-          </span>
-
-          <h2>
-            Let's Play!
-          </h2>
-
-          <p>
-            Play fun games and earn coins and XP.
-          </p>
-
+        <div class="challenge-label">
+          TODAY'S MISSION
         </div>
 
-
-        <div class="games-grid">
-
-
-          <!-- =================================================
-               MEMORY GAME
-               ================================================= -->
-
-          <article class="game-card">
-
-            <div class="game-icon">
-              🧩
-            </div>
-
-            <div class="game-card-content">
-
-              <span class="game-tag">
-                Memory
-              </span>
-
-              <h3>
-                Memory Match
-              </h3>
-
-              <p>
-                Find all the matching pairs.
-              </p>
-
-              <div class="game-reward">
-                🪙 +50 &nbsp; ⭐ +100 XP
-              </div>
-
-              <button
-                type="button"
-                class="game-play-btn"
-                data-game="memory"
-              >
-                ▶ Play
-              </button>
-
-            </div>
-
-          </article>
-
-
-          <!-- =================================================
-               QUICK QUIZ
-               ================================================= -->
-
-          <article class="game-card">
-
-            <div class="game-icon">
-              🧠
-            </div>
-
-            <div class="game-card-content">
-
-              <span class="game-tag">
-                Brain
-              </span>
-
-              <h3>
-                Quick Quiz
-              </h3>
-
-              <p>
-                Test your knowledge with quick questions.
-              </p>
-
-              <div class="game-reward">
-                🪙 Up to +50 &nbsp; ⭐ XP
-              </div>
-
-              <button
-                type="button"
-                class="game-play-btn"
-                data-game="quiz"
-              >
-                ▶ Play
-              </button>
-
-            </div>
-
-          </article>
-
-
-          <!-- =================================================
-               WORD BUILDER
-               ================================================= -->
-
-          <article class="game-card">
-
-            <div class="game-icon">
-              🔤
-            </div>
-
-            <div class="game-card-content">
-
-              <span class="game-tag">
-                Words
-              </span>
-
-              <h3>
-                Word Builder
-              </h3>
-
-              <p>
-                Arrange letters and build the correct word.
-              </p>
-
-              <div class="game-reward">
-                🪙 +25 &nbsp; ⭐ +60 XP
-              </div>
-
-              <button
-                type="button"
-                class="game-play-btn"
-                data-game="word"
-              >
-                ▶ Play
-              </button>
-
-            </div>
-
-          </article>
-
-
-          <!-- =================================================
-               MATH CHALLENGE
-               FIXED: data-game="mathgame"
-               ================================================= -->
-
-          <article class="game-card">
-
-            <div class="game-icon">
-              ➕
-            </div>
-
-            <div class="game-card-content">
-
-              <span class="game-tag">
-                Numbers
-              </span>
-
-              <h3>
-                Math Challenge
-              </h3>
-
-              <p>
-                Solve a fun addition challenge.
-              </p>
-
-              <div class="game-reward">
-                🪙 +20 &nbsp; ⭐ +50 XP
-              </div>
-
-              <button
-                type="button"
-                class="game-play-btn"
-                data-game="mathgame"
-              >
-                ▶ Play
-              </button>
-
-            </div>
-
-          </article>
-
-
-          <!-- =================================================
-               COLOR GAME
-               FIXED: data-game="color"
-               ================================================= -->
-
-          <article class="game-card">
-
-            <div class="game-icon">
-              🎨
-            </div>
-
-            <div class="game-card-content">
-
-              <span class="game-tag">
-                Colors
-              </span>
-
-              <h3>
-                Color Game
-              </h3>
-
-              <p>
-                Find the correct color.
-              </p>
-
-              <div class="game-reward">
-                🪙 +15 &nbsp; ⭐ +40 XP
-              </div>
-
-              <button
-                type="button"
-                class="game-play-btn"
-                data-game="color"
-              >
-                ▶ Play
-              </button>
-
-            </div>
-
-          </article>
-
-
-          <!-- =================================================
-               NUMBER HUNT
-               FIXED: data-game="number"
-               ================================================= -->
-
-          <article class="game-card">
-
-            <div class="game-icon">
-              🔢
-            </div>
-
-            <div class="game-card-content">
-
-              <span class="game-tag">
-                Numbers
-              </span>
-
-              <h3>
-                Number Hunt
-              </h3>
-
-              <p>
-                Find the hidden target number.
-              </p>
-
-              <div class="game-reward">
-                🪙 +15 &nbsp; ⭐ +40 XP
-              </div>
-
-              <button
-                type="button"
-                class="game-play-btn"
-                data-game="number"
-              >
-                ▶ Play
-              </button>
-
-            </div>
-
-          </article>
-
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- ===================================================
-         REWARDS
-         =================================================== -->
-
-    <section
-      class="section"
-      id="rewards"
-    >
-
-      <div class="container">
-
-        <div class="section-heading">
-
-          <span class="section-label">
-            Your Achievements
-          </span>
-
-          <h2>
-            Rewards & Badges
-          </h2>
-
-          <p>
-            Keep learning and unlock awesome badges.
-          </p>
-
-        </div>
-
-
-        <div class="rewards-grid">
-
-
-          <div class="reward-card unlocked">
-
-            <div class="reward-icon">
-              🌟
-            </div>
-
-            <h3>
-              First Step
-            </h3>
-
-            <p>
-              Complete your first activity.
-            </p>
-
-          </div>
-
-
-          <div class="reward-card unlocked">
-
-            <div class="reward-icon">
-              🔥
-            </div>
-
-            <h3>
-              On Fire
-            </h3>
-
-            <p>
-              Keep your learning streak alive.
-            </p>
-
-          </div>
-
-
-          <div
-            class="reward-card"
-            id="brainMasterBadge"
-          >
-
-            <div class="reward-icon">
-              🧠
-            </div>
-
-            <h3>
-              Brain Master
-            </h3>
-
-            <p>
-              Complete 10 activities.
-            </p>
-
-          </div>
-
-
-          <div
-            class="reward-card"
-            id="wonderKidBadge"
-          >
-
-            <div class="reward-icon">
-              🏆
-            </div>
-
-            <h3>
-              WonderKid
-            </h3>
-
-            <p>
-              Complete 25 activities.
-            </p>
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </section>
-
-  </main>
-
-
-  <!-- =====================================================
-       FOOTER
-       ===================================================== -->
-
-  <footer class="site-footer">
-
-    <div class="container footer-inner">
-
-      <div>
-
-        <div class="logo footer-logo">
-
-          <div class="logo-icon">
-            🌈
-          </div>
-
-          <div class="logo-text">
-            <strong>WonderKids</strong>
-            <span>Learn • Play • Grow</span>
-          </div>
-
-        </div>
+        <h2>
+          Complete 3 learning activities
+        </h2>
 
         <p>
-          Making learning fun, one adventure at a time.
+          Finish today's mission and earn
+          <strong>50 bonus coins!</strong>
         </p>
 
-      </div>
+        <div class="challenge-progress">
 
+          <div class="challenge-bar">
+            <div id="challengeFill" class="challenge-fill"></div>
+          </div>
 
-      <div class="footer-stats">
-
-        <div>
-          <strong id="footerLevel">
-            Level <span id="footerLevelNumber">3</span>
-          </strong>
-
-          <span>
-            Explorer
+          <span id="challengeCount">
+            0 / 3
           </span>
-        </div>
 
-        <div>
-          <strong>
-            🪙 <span id="footerCoins">420</span>
-          </strong>
-
-          <span>
-            Coins
-          </span>
         </div>
 
       </div>
+
+      <button id="challengeBtn" class="btn btn-dark">
+        Start Mission
+      </button>
 
     </div>
 
+  </div>
 
-    <div class="footer-bottom">
+</section>
+
+
+<!-- ================= LEARN ================= -->
+
+<section id="learn" class="content-section">
+
+  <div class="container">
+
+    <div class="section-heading">
+
+      <div>
+        <span class="section-kicker">
+          📚 LEARN & DISCOVER
+        </span>
+
+        <h2>Pick a subject</h2>
+      </div>
 
       <p>
-        © 2026 WonderKids. Learn • Play • Grow 🌈
+        Choose something exciting and start learning!
       </p>
 
     </div>
 
-  </footer>
+
+    <div class="subject-grid">
 
 
-  <!-- =====================================================
-       PROFILE MODAL
-       ===================================================== -->
+      <!-- MATH -->
 
-  <div
-    class="modal-overlay"
-    id="profileModal"
-  >
+      <article class="subject-card math-card">
 
-    <div class="modal-box profile-modal">
+        <div class="subject-icon">➕</div>
 
-      <button
-        type="button"
-        class="modal-close"
-        id="closeProfile"
-        aria-label="Close profile"
-      >
-        ✕
-      </button>
+        <div class="subject-content">
 
-
-      <div class="profile-modal-content">
-
-        <div class="profile-big-avatar">
-          <span id="profileAvatar">
-            🧒
+          <span class="subject-level">
+            LEVEL 1–5
           </span>
+
+          <h3>Math Mountain</h3>
+
+          <p>
+            Numbers, counting, addition, subtraction
+            and clever puzzles.
+          </p>
+
+          <button class="card-button" data-quiz="math">
+            Start Math →
+          </button>
+
         </div>
 
-        <h2>
-          My Profile
-        </h2>
+      </article>
+
+
+      <!-- ENGLISH -->
+
+      <article class="subject-card english-card">
+
+        <div class="subject-icon">🔤</div>
+
+        <div class="subject-content">
+
+          <span class="subject-level">
+            LEVEL 1–5
+          </span>
+
+          <h3>Word Jungle</h3>
+
+          <p>
+            Learn ABC, spelling, vocabulary and
+            sentence building.
+          </p>
+
+          <button class="card-button" data-quiz="english">
+            Start English →
+          </button>
+
+        </div>
+
+      </article>
+
+
+      <!-- SCIENCE -->
+
+      <article class="subject-card science-card">
+
+        <div class="subject-icon">🔬</div>
+
+        <div class="subject-content">
+
+          <span class="subject-level">
+            LEVEL 1–5
+          </span>
+
+          <h3>Science Lab</h3>
+
+          <p>
+            Discover animals, space, plants,
+            nature and science.
+          </p>
+
+          <button class="card-button" data-quiz="science">
+            Start Science →
+          </button>
+
+        </div>
+
+      </article>
+
+
+      <!-- GENERAL -->
+
+      <article class="subject-card brain-card">
+
+        <div class="subject-icon">🧠</div>
+
+        <div class="subject-content">
+
+          <span class="subject-level">
+            LEVEL 1–5
+          </span>
+
+          <h3>Brain Boost</h3>
+
+          <p>
+            Test your thinking with fun general
+            knowledge questions.
+          </p>
+
+          <button class="card-button" data-quiz="general">
+            Brain Boost →
+          </button>
+
+        </div>
+
+      </article>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- ================= GAMES ================= -->
+
+<section id="games" class="content-section games-section">
+
+  <div class="container">
+
+    <div class="section-heading">
+
+      <div>
+        <span class="section-kicker">
+          🎮 PLAY & HAVE FUN
+        </span>
+
+        <h2>Fun games</h2>
+      </div>
+
+      <p>
+        Play games and collect coins!
+      </p>
+
+    </div>
+
+
+    <div class="games-grid">
+
+
+      <!-- MEMORY -->
+
+      <article class="game-card">
+
+        <div class="game-visual memory-visual">
+
+          <div class="floating-card card-a">🍎</div>
+          <div class="floating-card card-b">⭐</div>
+          <div class="floating-card card-c">🚀</div>
+
+        </div>
+
+        <div class="game-info">
+
+          <span class="game-type">
+            MEMORY
+          </span>
+
+          <h3>Memory Match</h3>
+
+          <p>
+            Find matching pairs and train your memory.
+          </p>
+
+          <div class="game-footer">
+
+            <span>🪙 +20 coins</span>
+
+            <button class="play-button" data-game="memory">
+              Play
+            </button>
+
+          </div>
+
+        </div>
+
+      </article>
+
+
+      <!-- QUIZ -->
+
+      <article class="game-card">
+
+        <div class="game-visual quiz-visual">
+
+          <span class="quiz-big">❓</span>
+          <span class="quiz-small">💡</span>
+
+        </div>
+
+        <div class="game-info">
+
+          <span class="game-type">
+            QUIZ
+          </span>
+
+          <h3>Quick Quiz</h3>
+
+          <p>
+            Answer fun questions and test your knowledge.
+          </p>
+
+          <div class="game-footer">
+
+            <span>🪙 +30 coins</span>
+
+            <button class="play-button" data-game="quiz">
+              Play
+            </button>
+
+          </div>
+
+        </div>
+
+      </article>
+
+
+      <!-- WORD -->
+
+      <article class="game-card">
+
+        <div class="game-visual word-visual">
+
+          <span>W</span>
+          <span>O</span>
+          <span>R</span>
+          <span>D</span>
+
+        </div>
+
+        <div class="game-info">
+
+          <span class="game-type">
+            WORD
+          </span>
+
+          <h3>Word Builder</h3>
+
+          <p>
+            Put letters together and build awesome words.
+          </p>
+
+          <div class="game-footer">
+
+            <span>🪙 +25 coins</span>
+
+            <button class="play-button" data-game="word">
+              Play
+            </button>
+
+          </div>
+
+        </div>
+
+      </article>
+
+
+      <!-- MATH GAME -->
+
+      <article class="game-card">
+
+        <div class="game-visual math-game-visual">
+          <span>➕</span>
+          <span>🔢</span>
+          <span>🎯</span>
+        </div>
+
+        <div class="game-info">
+
+          <span class="game-type">
+            MATH
+          </span>
+
+          <h3>Math Challenge</h3>
+
+          <p>
+            Solve quick math problems and earn XP.
+          </p>
+
+          <div class="game-footer">
+
+            <span>🪙 +30 coins</span>
+
+            <button class="play-button" data-game="mathgame">
+              Play
+            </button>
+
+          </div>
+
+        </div>
+
+      </article>
+
+
+      <!-- COLOR -->
+
+      <article class="game-card">
+
+        <div class="game-visual color-visual">
+
+          <span>🔴</span>
+          <span>🟢</span>
+          <span>🔵</span>
+
+        </div>
+
+        <div class="game-info">
+
+          <span class="game-type">
+            COLORS
+          </span>
+
+          <h3>Color Game</h3>
+
+          <p>
+            Find the correct color and sharpen your eyes.
+          </p>
+
+          <div class="game-footer">
+
+            <span>🪙 +20 coins</span>
+
+            <button class="play-button" data-game="color">
+              Play
+            </button>
+
+          </div>
+
+        </div>
+
+      </article>
+
+
+      <!-- NUMBER -->
+
+      <article class="game-card">
+
+        <div class="game-visual number-visual">
+
+          <span>1</span>
+          <span>2</span>
+          <span>3</span>
+
+        </div>
+
+        <div class="game-info">
+
+          <span class="game-type">
+            NUMBERS
+          </span>
+
+          <h3>Number Hunt</h3>
+
+          <p>
+            Find the right number and become a number star.
+          </p>
+
+          <div class="game-footer">
+
+            <span>🪙 +20 coins</span>
+
+            <button class="play-button" data-game="number">
+              Play
+            </button>
+
+          </div>
+
+        </div>
+
+      </article>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- ================= REWARDS ================= -->
+
+<section id="rewards" class="content-section rewards-section">
+
+  <div class="container">
+
+    <div class="section-heading">
+
+      <div>
+        <span class="section-kicker">
+          🏆 YOUR ACHIEVEMENTS
+        </span>
+
+        <h2>Rewards & badges</h2>
+      </div>
+
+      <p>
+        Keep learning to unlock them all!
+      </p>
+
+    </div>
+
+
+    <div class="rewards-grid">
+
+      <div class="reward-card unlocked">
+
+        <div class="reward-icon">🌟</div>
+
+        <h3>First Step</h3>
 
         <p>
-          Customize your WonderKids profile.
+          Complete your first activity.
         </p>
 
+        <span>
+          ✓ Unlocked
+        </span>
 
-        <label>
-          Your Name
-        </label>
-
-        <input
-          type="text"
-          id="profileNameInput"
-          placeholder="Enter your name"
-          maxlength="30"
-        >
+      </div>
 
 
-        <label>
-          Choose Avatar
-        </label>
+      <div class="reward-card unlocked">
 
-        <input
-          type="text"
-          id="profileAvatarInput"
-          placeholder="🧒"
-          maxlength="4"
-        >
+        <div class="reward-icon">🔥</div>
+
+        <h3>On Fire</h3>
+
+        <p>
+          Keep a 3-day learning streak.
+        </p>
+
+        <span>
+          ✓ Unlocked
+        </span>
+
+      </div>
 
 
-        <button
-          type="button"
-          class="primary-btn"
-          id="saveProfile"
-        >
-          💾 Save Profile
-        </button>
+      <div class="reward-card" id="brainMasterBadge">
+
+        <div class="reward-icon">🧠</div>
+
+        <h3>Brain Master</h3>
+
+        <p>
+          Answer 20 quiz questions.
+        </p>
+
+        <span>
+          🔒 Locked
+        </span>
+
+      </div>
+
+
+      <div class="reward-card" id="wonderKidBadge">
+
+        <div class="reward-icon">🏅</div>
+
+        <h3>WonderKid</h3>
+
+        <p>
+          Reach level 10.
+        </p>
+
+        <span>
+          🔒 Locked
+        </span>
 
       </div>
 
@@ -1027,56 +811,127 @@
 
   </div>
 
+</section>
 
-  <!-- =====================================================
-       GAME MODAL
-       ===================================================== -->
+</main>
 
-  <div
-    class="modal-overlay"
-    id="gameModal"
-  >
 
-    <div class="modal-box game-modal">
+<!-- ================= FOOTER ================= -->
 
-      <div id="gameContent">
-        <!-- Game content inserted by JavaScript -->
-      </div>
+<footer class="site-footer">
+
+  <div class="container footer-inner">
+
+    <div class="footer-brand">
+      <span>🌈</span>
+      <strong>WonderKids</strong>
+    </div>
+
+    <p>
+      Learn • Play • Grow • Have Fun!
+    </p>
+
+    <p class="copyright">
+      © 2026 WonderKids
+    </p>
+
+  </div>
+
+</footer>
+
+
+<!-- ================= PROFILE MODAL ================= -->
+
+<div class="modal-overlay" id="profileModal">
+
+  <div class="modal-card profile-modal">
+
+    <button class="modal-close" data-close="profileModal">
+      ×
+    </button>
+
+    <div class="modal-icon">
+      👤
+    </div>
+
+    <h2>My Profile</h2>
+
+    <p class="modal-subtitle">
+      Choose your explorer name and avatar.
+    </p>
+
+    <label class="input-label" for="playerName">
+      Your name
+    </label>
+
+    <input
+      id="playerName"
+      class="text-input"
+      type="text"
+      maxlength="20"
+      placeholder="Enter your name"
+    >
+
+    <label class="input-label">
+      Choose avatar
+    </label>
+
+    <div class="avatar-grid">
+
+      <button class="avatar-option" data-avatar="🧒">🧒</button>
+      <button class="avatar-option" data-avatar="👦">👦</button>
+      <button class="avatar-option" data-avatar="👧">👧</button>
+      <button class="avatar-option" data-avatar="🧑">🧑</button>
+      <button class="avatar-option" data-avatar="🦸">🦸</button>
+      <button class="avatar-option" data-avatar="🧙">🧙</button>
 
     </div>
 
+    <button id="saveProfile" class="btn btn-primary full-btn">
+      Save Profile
+    </button>
+
   </div>
 
+</div>
 
-  <!-- =====================================================
-       TOAST
-       ===================================================== -->
 
-  <div
-    class="toast"
-    id="toast"
-  >
-    Great job! 🎉
+<!-- ================= GAME MODAL ================= -->
+
+<div class="modal-overlay" id="gameModal">
+
+  <div class="modal-card game-modal">
+
+    <button class="modal-close" data-close="gameModal">
+      ×
+    </button>
+
+    <div id="gameContent"></div>
+
   </div>
 
-
-  <!-- =====================================================
-       CONFETTI
-       ===================================================== -->
-
-  <div
-    id="confetti"
-    class="confetti-container"
-    aria-hidden="true"
-  ></div>
+</div>
 
 
-  <!-- =====================================================
-       JAVASCRIPT
-       ===================================================== -->
+<!-- ================= TOAST ================= -->
 
-  <script src="./script.js"></script>
+<div class="toast" id="toast">
+
+  <span id="toastIcon">🎉</span>
+
+  <span id="toastMessage">
+    Great job!
+  </span>
+
+</div>
+
+
+<!-- ================= CONFETTI ================= -->
+
+<div id="confettiContainer"></div>
+
+
+<script src="./script.js"></script>
 
 </body>
 </html>
-```
