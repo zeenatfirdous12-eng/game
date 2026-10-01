@@ -1,14 +1,19 @@
-/* =========================================
+/* =========================================================
    WONDERKIDS
-   MAIN JAVASCRIPT
-========================================= */
+   Main JavaScript
+   No Google Apps Script
+   No backend
+   Uses browser localStorage only
+   ========================================================= */
+
+"use strict";
 
 
-/* =========================================
+/* =========================================================
    PLAYER DATA
-========================================= */
+   ========================================================= */
 
-let player = {
+const defaultPlayer = {
   name: "Young Explorer",
   avatar: "🧒",
   coins: 120,
@@ -19,470 +24,526 @@ let player = {
   dailyProgress: 0
 };
 
-
-/* =========================================
-   LOAD PLAYER
-========================================= */
+let player = loadPlayer();
 
 function loadPlayer() {
+  try {
+    const saved = localStorage.getItem("wonderkids_player");
 
-  const saved = localStorage.getItem("wonderKidsPlayer");
-
-  if (saved) {
-    try {
-      player = {
-        ...player,
-        ...JSON.parse(saved)
-      };
-    } catch (error) {
-      console.log("Player data reset.");
+    if (!saved) {
+      return { ...defaultPlayer };
     }
+
+    return {
+      ...defaultPlayer,
+      ...JSON.parse(saved)
+    };
+
+  } catch (error) {
+    console.error("Could not load player:", error);
+    return { ...defaultPlayer };
   }
-
-  updateUI();
 }
-
 
 function savePlayer() {
   localStorage.setItem(
-    "wonderKidsPlayer",
+    "wonderkids_player",
     JSON.stringify(player)
   );
 }
 
 
-/* =========================================
-   UPDATE UI
-========================================= */
+/* =========================================================
+   DOM HELPERS
+   ========================================================= */
 
-function updateUI() {
+const $ = (selector) => document.querySelector(selector);
 
-  document.getElementById("coinCount").textContent =
-    player.coins;
-
-  document.getElementById("rewardCoins").textContent =
-    player.coins;
-
-  document.getElementById("heartCount").textContent =
-    player.hearts;
-
-  document.getElementById("profileAvatar").textContent =
-    player.avatar;
-
-  document.getElementById("bigAvatar").textContent =
-    player.avatar;
-
-  document.getElementById("playerNameDisplay").textContent =
-    player.name;
-
-  document.getElementById("levelNumber").textContent =
-    player.level;
-
-  document.getElementById("xpCurrent").textContent =
-    player.xp;
-
-  document.getElementById("streakCount").textContent =
-    player.streak + " Day";
-
-  const xpPercentage =
-    Math.min((player.xp / 1000) * 100, 100);
-
-  document.getElementById("xpFill").style.width =
-    xpPercentage + "%";
-
-  const dailyPercentage =
-    Math.min((player.dailyProgress / 5) * 100, 100);
-
-  document.getElementById("challengeFill").style.width =
-    dailyPercentage + "%";
-
-  document.getElementById("challengeText").textContent =
-    player.dailyProgress + " / 5";
-}
+const $$ = (selector) => {
+  return Array.from(document.querySelectorAll(selector));
+};
 
 
-/* =========================================
-   PROFILE
-========================================= */
+/* =========================================================
+   UPDATE PLAYER UI
+   ========================================================= */
 
-let selectedAvatar = "🧒";
+function updatePlayerUI() {
 
+  $("#coinCount").textContent = player.coins;
+  $("#heartCount").textContent = player.hearts;
 
-document
-  .getElementById("profileButton")
-  .addEventListener("click", function () {
+  $("#heroName").textContent = player.name;
 
-    document.getElementById("playerNameInput").value =
-      player.name === "Young Explorer"
-        ? ""
-        : player.name;
+  $("#levelNumber").textContent = player.level;
+  $("#levelText").textContent = player.level;
 
-    selectedAvatar = player.avatar;
+  $("#streakCount").textContent = player.streak;
 
-    document.getElementById("profileModal")
-      .classList.add("show");
-  });
+  const xpIntoLevel = player.xp % 1000;
+  const xpPercent = Math.min(
+    100,
+    (xpIntoLevel / 1000) * 100
+  );
 
+  $("#xpFill").style.width = `${xpPercent}%`;
 
-function selectAvatar(avatar) {
+  $("#xpText").textContent =
+    `${xpIntoLevel} / 1000 XP`;
 
-  selectedAvatar = avatar;
+  const dailyPercent =
+    Math.min(100, (player.dailyProgress / 3) * 100);
 
-  document
-    .querySelectorAll(".avatar-options button")
-    .forEach(button => {
-      button.classList.remove("selected");
+  $("#dailyProgressText").textContent =
+    `${Math.round(dailyPercent)}%`;
 
-      if (button.textContent === avatar) {
-        button.classList.add("selected");
-      }
-    });
-}
+  $("#challengeFill").style.width =
+    `${dailyPercent}%`;
 
+  $("#challengeCount").textContent =
+    `${Math.min(player.dailyProgress, 3)} / 3`;
 
-function saveProfile() {
+  const avatarButton = $("#profileBtn");
 
-  const input =
-    document.getElementById("playerNameInput");
-
-  const name =
-    input.value.trim();
-
-  if (name.length > 0) {
-    player.name = name;
+  if (avatarButton) {
+    avatarButton.textContent = player.avatar;
   }
 
-  player.avatar = selectedAvatar;
+  const playerNameInput = $("#playerName");
+
+  if (playerNameInput) {
+    playerNameInput.value = player.name;
+  }
+
+  updateChallengeButton();
+}
+
+
+function updateChallengeButton() {
+
+  const button = $("#challengeBtn");
+
+  if (!button) return;
+
+  if (player.dailyProgress >= 3) {
+    button.textContent = "🎉 Completed!";
+    button.disabled = true;
+    button.style.opacity = "0.65";
+  } else {
+    button.textContent = "Start Challenge";
+    button.disabled = false;
+    button.style.opacity = "1";
+  }
+}
+
+
+/* =========================================================
+   XP & COINS
+   ========================================================= */
+
+function addCoins(amount) {
+
+  player.coins += amount;
 
   savePlayer();
-  updateUI();
-
-  closeModal("profileModal");
+  updatePlayerUI();
 
   showToast(
-    "🎉",
-    "Profile saved! Let's learn!"
+    "🪙",
+    `+${amount} coins!`
   );
 }
 
 
-/* =========================================
-   MODAL
-========================================= */
+function addXP(amount) {
+
+  const oldLevel = player.level;
+
+  player.xp += amount;
+
+  player.level =
+    Math.floor(player.xp / 1000) + 1;
+
+  savePlayer();
+  updatePlayerUI();
+
+  showToast(
+    "⭐",
+    `+${amount} XP!`
+  );
+
+  if (player.level > oldLevel) {
+    setTimeout(() => {
+      showToast(
+        "🏆",
+        `Level ${player.level} unlocked!`
+      );
+
+      createConfetti();
+    }, 500);
+  }
+}
+
+
+function completeActivity() {
+
+  if (player.dailyProgress < 3) {
+    player.dailyProgress++;
+  }
+
+  savePlayer();
+  updatePlayerUI();
+}
+
+
+/* =========================================================
+   PROFILE
+   ========================================================= */
+
+function openModal(id) {
+
+  const modal = document.getElementById(id);
+
+  if (!modal) return;
+
+  modal.classList.add("show");
+  document.body.style.overflow = "hidden";
+}
+
 
 function closeModal(id) {
 
-  document
-    .getElementById(id)
-    .classList.remove("show");
+  const modal = document.getElementById(id);
+
+  if (!modal) return;
+
+  modal.classList.remove("show");
+
+  if (!$(".modal-overlay.show")) {
+    document.body.style.overflow = "";
+  }
 }
 
 
-document.querySelectorAll(".modal-overlay")
-  .forEach(overlay => {
+$("#profileBtn").addEventListener("click", () => {
 
-    overlay.addEventListener("click", function(event) {
+  $("#playerName").value = player.name;
 
-      if (event.target === overlay) {
-        overlay.classList.remove("show");
-      }
+  $$(".avatar-option").forEach(button => {
+    button.classList.toggle(
+      "selected",
+      button.dataset.avatar === player.avatar
+    );
+  });
 
+  openModal("profileModal");
+});
+
+
+$$(".avatar-option").forEach(button => {
+
+  button.addEventListener("click", () => {
+
+    $$(".avatar-option").forEach(btn => {
+      btn.classList.remove("selected");
     });
+
+    button.classList.add("selected");
+
+    player.avatar = button.dataset.avatar;
+  });
+
+});
+
+
+$("#saveProfile").addEventListener("click", () => {
+
+  const enteredName =
+    $("#playerName").value.trim();
+
+  if (enteredName.length > 0) {
+    player.name = enteredName;
+  }
+
+  savePlayer();
+  updatePlayerUI();
+  closeModal("profileModal");
+
+  showToast(
+    "✨",
+    "Profile saved!"
+  );
+});
+
+
+$$("[data-close]").forEach(button => {
+
+  button.addEventListener("click", () => {
+    closeModal(button.dataset.close);
+  });
+
+});
+
+
+$$(".modal-overlay").forEach(overlay => {
+
+  overlay.addEventListener("click", (event) => {
+
+    if (event.target === overlay) {
+      closeModal(overlay.id);
+    }
 
   });
 
+});
 
-/* =========================================
+
+document.addEventListener("keydown", (event) => {
+
+  if (event.key === "Escape") {
+
+    $$(".modal-overlay.show").forEach(modal => {
+      closeModal(modal.id);
+    });
+
+  }
+
+});
+
+
+/* =========================================================
    NAVIGATION
-========================================= */
+   ========================================================= */
 
-function scrollToSection(id) {
+$$(".nav-link").forEach(link => {
 
-  const section =
-    document.getElementById(id);
+  link.addEventListener("click", () => {
 
-  if (!section) return;
-
-  section.scrollIntoView({
-    behavior: "smooth"
-  });
-}
-
-
-document.querySelectorAll(".nav-link")
-  .forEach(link => {
-
-    link.addEventListener("click", function() {
-
-      document
-        .querySelectorAll(".nav-link")
-        .forEach(item =>
-          item.classList.remove("active")
-        );
-
-      this.classList.add("active");
-
+    $$(".nav-link").forEach(item => {
+      item.classList.remove("active");
     });
 
+    link.classList.add("active");
+
   });
 
+});
 
-/* =========================================
+
+/* =========================================================
    QUIZ DATA
-========================================= */
+   ========================================================= */
 
 const quizData = {
 
   math: [
-
     {
-      q: "What is 5 + 3?",
+      question: "What is 5 + 3?",
       options: ["6", "7", "8", "9"],
-      answer: "8"
+      answer: 2
     },
 
     {
-      q: "What is 10 - 4?",
+      question: "What is 10 - 4?",
       options: ["4", "5", "6", "7"],
-      answer: "6"
+      answer: 2
     },
 
     {
-      q: "What is 3 × 2?",
-      options: ["5", "6", "7", "8"],
-      answer: "6"
+      question: "Which number is bigger?",
+      options: ["3", "7", "5", "2"],
+      answer: 1
     },
 
     {
-      q: "Which number is the biggest?",
-      options: ["12", "21", "15", "18"],
-      answer: "21"
+      question: "What is 2 × 4?",
+      options: ["6", "7", "8", "9"],
+      answer: 2
     },
 
     {
-      q: "How many sides does a square have?",
-      options: ["3", "4", "5", "6"],
-      answer: "4"
+      question: "How many sides does a triangle have?",
+      options: ["2", "3", "4", "5"],
+      answer: 1
     }
-
   ],
 
 
   english: [
-
     {
-      q: "Which word is a color?",
-      options: ["Apple", "Blue", "Chair", "Dog"],
-      answer: "Blue"
+      question: "Which word is a color?",
+      options: ["Apple", "Blue", "Dog", "Run"],
+      answer: 1
     },
 
     {
-      q: "Which one is an animal?",
-      options: ["Table", "Tiger", "Pencil", "Book"],
-      answer: "Tiger"
+      question: "Which one is an animal?",
+      options: ["Table", "Tiger", "Chair", "Book"],
+      answer: 1
     },
 
     {
-      q: "Complete: C _ T",
-      options: ["A", "E", "I", "O"],
-      answer: "A"
+      question: "What is the opposite of BIG?",
+      options: ["Tall", "Small", "Fast", "Happy"],
+      answer: 1
     },
 
     {
-      q: "Which word means the opposite of BIG?",
-      options: ["Tall", "Small", "Long", "Wide"],
-      answer: "Small"
-    },
-
-    {
-      q: "Which word rhymes with CAT?",
+      question: "Which word rhymes with CAT?",
       options: ["Dog", "Hat", "Sun", "Tree"],
-      answer: "Hat"
-    }
+      answer: 1
+    },
 
+    {
+      question: "Which word starts with B?",
+      options: ["Apple", "Banana", "Orange", "Elephant"],
+      answer: 1
+    }
   ],
 
 
   science: [
-
     {
-      q: "Which planet do we live on?",
+      question: "Which planet do we live on?",
       options: ["Mars", "Earth", "Jupiter", "Venus"],
-      answer: "Earth"
+      answer: 1
     },
 
     {
-      q: "Which animal gives us milk?",
-      options: ["Cow", "Lion", "Tiger", "Eagle"],
-      answer: "Cow"
+      question: "What gives us light during the day?",
+      options: ["Moon", "Stars", "Sun", "Cloud"],
+      answer: 2
     },
 
     {
-      q: "What do plants need to grow?",
-      options: [
-        "Sunlight",
-        "Plastic",
-        "Toys",
-        "Shoes"
-      ],
-      answer: "Sunlight"
+      question: "Which animal can fly?",
+      options: ["Fish", "Bird", "Dog", "Horse"],
+      answer: 1
     },
 
     {
-      q: "How many legs does a spider have?",
-      options: ["4", "6", "8", "10"],
-      answer: "8"
+      question: "What do plants need to grow?",
+      options: ["Water", "Shoes", "Toys", "Cars"],
+      answer: 0
     },
 
     {
-      q: "What do humans breathe?",
-      options: ["Water", "Air", "Sand", "Milk"],
-      answer: "Air"
+      question: "Which one lives in water?",
+      options: ["Fish", "Cat", "Cow", "Lion"],
+      answer: 0
     }
-
   ],
 
 
   general: [
-
     {
-      q: "How many days are in a week?",
+      question: "How many days are in a week?",
       options: ["5", "6", "7", "8"],
-      answer: "7"
+      answer: 2
     },
 
     {
-      q: "Which animal is known as the king of the jungle?",
-      options: ["Tiger", "Lion", "Elephant", "Bear"],
-      answer: "Lion"
+      question: "Which shape is round?",
+      options: ["Square", "Triangle", "Circle", "Rectangle"],
+      answer: 2
     },
 
     {
-      q: "What color do you get by mixing red and yellow?",
-      options: ["Green", "Purple", "Orange", "Blue"],
-      answer: "Orange"
+      question: "Which one is used for writing?",
+      options: ["Pencil", "Spoon", "Ball", "Shoe"],
+      answer: 0
     },
 
     {
-      q: "Which shape has three sides?",
-      options: ["Circle", "Square", "Triangle", "Rectangle"],
-      answer: "Triangle"
+      question: "What color is grass usually?",
+      options: ["Green", "Purple", "Pink", "Black"],
+      answer: 0
     },
 
     {
-      q: "Which is the fastest?",
-      options: ["Turtle", "Cheetah", "Snail", "Cat"],
-      answer: "Cheetah"
+      question: "Which one is a fruit?",
+      options: ["Carrot", "Apple", "Potato", "Onion"],
+      answer: 1
     }
-
   ]
 
 };
 
 
-/* =========================================
-   QUIZ VARIABLES
-========================================= */
-
 let currentQuiz = [];
-let currentQuestion = 0;
+let currentQuizIndex = 0;
 let quizScore = 0;
-let currentQuizType = "general";
-let isDailyChallenge = false;
+let quizAnswered = false;
 
 
-/* =========================================
-   START QUIZ
-========================================= */
+/* =========================================================
+   OPEN SUBJECT QUIZ
+   ========================================================= */
 
-function startQuiz(type = "general") {
+$$("[data-quiz]").forEach(button => {
 
-  isDailyChallenge =
-    type === "daily";
+  button.addEventListener("click", () => {
 
-  currentQuizType =
-    isDailyChallenge
-      ? "general"
-      : type;
+    const category = button.dataset.quiz;
+
+    startQuiz(category);
+
+  });
+
+});
+
+
+function startQuiz(category) {
 
   currentQuiz =
-    [...quizData[currentQuizType]];
+    [...(quizData[category] || quizData.general)];
 
-  shuffleArray(currentQuiz);
-
-  currentQuestion = 0;
+  currentQuizIndex = 0;
   quizScore = 0;
+  quizAnswered = false;
 
-  document
-    .getElementById("gameModal")
-    .classList.add("show");
+  renderQuiz(category);
 
-  renderQuestion();
+  openModal("gameModal");
+
 }
 
 
-/* =========================================
-   RENDER QUESTION
-========================================= */
+function renderQuiz(category) {
 
-function renderQuestion() {
+  const question =
+    currentQuiz[currentQuizIndex];
 
-  const gameContent =
-    document.getElementById("gameContent");
-
-  if (currentQuestion >= currentQuiz.length) {
-
-    showQuizResult();
-
+  if (!question) {
+    showQuizResult(category);
     return;
   }
 
-  const question =
-    currentQuiz[currentQuestion];
+  $("#gameContent").innerHTML = `
 
-  const percentage =
-    (currentQuestion / currentQuiz.length) * 100;
+    <div class="quiz-top">
 
-  gameContent.innerHTML = `
+      <span class="quiz-category">
+        ${category.toUpperCase()} QUIZ
+      </span>
 
-    <div class="quiz-header">
-
-      <div class="game-big-icon">
-        ${getQuizIcon(currentQuizType)}
-      </div>
-
-      <h2>
-        ${getQuizTitle(currentQuizType)}
-      </h2>
-
-      <div class="quiz-progress">
-        <div
-          class="quiz-progress-fill"
-          style="width:${percentage}%"
-        ></div>
-      </div>
+      <span class="quiz-progress">
+        ${currentQuizIndex + 1} / ${currentQuiz.length}
+      </span>
 
     </div>
 
+    <h2 class="quiz-question">
+      ${question.question}
+    </h2>
 
-    <div class="question-number">
-      QUESTION ${currentQuestion + 1}
-      OF ${currentQuiz.length}
-    </div>
+    <div class="quiz-options">
 
-
-    <div class="question-text">
-      ${question.q}
-    </div>
-
-
-    <div class="answers">
-
-      ${question.options.map(option => `
+      ${question.options.map((option, index) => `
 
         <button
-          class="answer-btn"
-          onclick="checkAnswer(this, '${escapeQuotes(option)}')"
+          class="quiz-option"
+          data-option="${index}"
         >
           ${option}
         </button>
@@ -492,923 +553,733 @@ function renderQuestion() {
     </div>
 
   `;
+
+
+  $$(".quiz-option").forEach(button => {
+
+    button.addEventListener("click", () => {
+
+      checkQuizAnswer(
+        Number(button.dataset.option),
+        category
+      );
+
+    });
+
+  });
+
 }
 
 
-/* =========================================
-   CHECK ANSWER
-========================================= */
+function checkQuizAnswer(selected, category) {
 
-function checkAnswer(button, selected) {
+  if (quizAnswered) return;
+
+  quizAnswered = true;
 
   const question =
-    currentQuiz[currentQuestion];
+    currentQuiz[currentQuizIndex];
 
-  const allButtons =
-    document.querySelectorAll(".answer-btn");
+  const buttons =
+    $$(".quiz-option");
 
-  allButtons.forEach(btn => {
-    btn.disabled = true;
+  buttons.forEach(button => {
+    button.disabled = true;
   });
 
 
   if (selected === question.answer) {
 
-    button.classList.add("correct");
-
     quizScore++;
 
-    addXP(30);
-
-    addCoins(10);
-
-    if (isDailyChallenge) {
-      player.dailyProgress =
-        Math.min(player.dailyProgress + 1, 5);
-    }
+    buttons[selected].classList.add("correct");
 
     showToast(
       "🎉",
-      "Correct! Great job!"
+      "Correct answer!"
     );
-
-    createConfetti();
 
   } else {
 
-    button.classList.add("wrong");
+    buttons[selected].classList.add("wrong");
 
-    allButtons.forEach(btn => {
-
-      if (
-        btn.textContent.trim() ===
-        question.answer
-      ) {
-        btn.classList.add("correct");
-      }
-
-    });
-
-    player.hearts =
-      Math.max(player.hearts - 1, 0);
-
-    updateUI();
-    savePlayer();
+    buttons[question.answer].classList.add("correct");
 
     showToast(
       "💡",
-      "Almost! Keep trying!"
+      "Good try!"
     );
+
   }
 
 
   setTimeout(() => {
 
-    currentQuestion++;
+    currentQuizIndex++;
+    quizAnswered = false;
 
-    renderQuestion();
+    renderQuiz(category);
 
-  }, 1000);
+  }, 800);
+
 }
 
 
-/* =========================================
-   QUIZ RESULT
-========================================= */
+function showQuizResult(category) {
 
-function showQuizResult() {
+  const earnedCoins =
+    quizScore * 6;
 
-  const total =
-    currentQuiz.length;
+  const earnedXP =
+    quizScore * 15;
 
-  const percentage =
-    Math.round((quizScore / total) * 100);
-
-
-  let emoji = "🌱";
-  let message =
-    "Keep practicing and you will get even better!";
-
-
-  if (percentage === 100) {
-
-    emoji = "🏆";
-    message =
-      "Perfect score! You are a WonderKids superstar!";
-
-    addCoins(50);
-
-  } else if (percentage >= 60) {
-
-    emoji = "🌟";
-    message =
-      "Amazing work! Your brain is getting stronger!";
-
-    addCoins(25);
-
-  } else {
-
-    emoji = "💪";
-    message =
-      "Good try! Every question helps you learn!";
-
-    addCoins(10);
-  }
-
-
-  if (
-    isDailyChallenge &&
-    player.dailyProgress >= 5
-  ) {
-
-    addCoins(100);
-
-    addXP(100);
-
-    showToast(
-      "🏆",
-      "Daily challenge completed!"
-    );
-  }
-
-
-  updateUI();
-  savePlayer();
-
-
-  document.getElementById("gameContent").innerHTML = `
+  $("#gameContent").innerHTML = `
 
     <div class="quiz-result">
 
       <div class="result-emoji">
-        ${emoji}
+        ${quizScore >= 4 ? "🏆" : "🌟"}
       </div>
 
       <h2>Quiz Complete!</h2>
 
       <div class="result-score">
-        ${quizScore} / ${total}
+        ${quizScore}/${currentQuiz.length}
       </div>
 
       <p class="result-message">
-        ${message}
+        ${getQuizMessage(quizScore)}
       </p>
 
-      <div class="result-reward">
-        🪙 Coins earned • ⭐ XP earned
+      <div style="margin-top:20px; color:#77809c;">
+        🪙 +${earnedCoins} coins
+        <br>
+        ⭐ +${earnedXP} XP
       </div>
 
       <button
-        class="primary-btn full-btn"
-        onclick="closeModal('gameModal')"
+        id="quizDone"
+        class="btn btn-primary full-btn"
       >
-        Continue Adventure 🚀
+        Awesome!
       </button>
 
     </div>
 
   `;
+
+
+  addCoins(earnedCoins);
+  addXP(earnedXP);
+  completeActivity();
+
+  createConfetti();
+
+
+  $("#quizDone").addEventListener(
+    "click",
+    () => closeModal("gameModal")
+  );
+
 }
 
 
-/* =========================================
-   QUIZ HELPERS
-========================================= */
+function getQuizMessage(score) {
 
-function getQuizIcon(type) {
+  if (score === 5) {
+    return "Amazing! You're a superstar! 🌟";
+  }
 
-  const icons = {
-    math: "🔢",
-    english: "📚",
-    science: "🔬",
-    general: "🧠"
-  };
+  if (score >= 4) {
+    return "Fantastic work! Keep going! 🚀";
+  }
 
-  return icons[type] || "🧠";
+  if (score >= 2) {
+    return "Nice try! Practice makes you stronger! 💪";
+  }
+
+  return "Great effort! Let's try again! 😊";
 }
 
 
-function getQuizTitle(type) {
+/* =========================================================
+   QUICK QUIZ GAME
+   ========================================================= */
 
-  const titles = {
-    math: "Math Mountain",
-    english: "Word Jungle",
-    science: "Science Lab",
-    general: "Brain Boost"
-  };
+$$("[data-game='quiz']").forEach(button => {
 
-  return titles[type] || "Brain Boost";
-}
+  button.addEventListener("click", () => {
+    startQuiz("general");
+  });
+
+});
 
 
-/* =========================================
+/* =========================================================
    MEMORY GAME
-========================================= */
+   ========================================================= */
 
-const memoryEmojis = [
+let memoryFirst = null;
+let memorySecond = null;
+let memoryLock = false;
+let memoryMatches = 0;
+
+const memorySymbols = [
   "🍎",
-  "🚀",
-  "🐶",
-  "🌈",
   "⭐",
-  "🦄",
-  "🍕",
-  "🐼"
+  "🚀",
+  "🐼",
+  "🌈",
+  "🦄"
 ];
 
-let memoryCards = [];
-let flippedCards = [];
-let matchedPairs = 0;
-let memoryMoves = 0;
-let memoryLocked = false;
+
+$$("[data-game='memory']").forEach(button => {
+
+  button.addEventListener("click", () => {
+    startMemoryGame();
+  });
+
+});
 
 
 function startMemoryGame() {
 
-  memoryCards =
-    [...memoryEmojis, ...memoryEmojis];
+  const cards =
+    [...memorySymbols, ...memorySymbols]
+      .sort(() => Math.random() - 0.5);
 
-  shuffleArray(memoryCards);
+  memoryFirst = null;
+  memorySecond = null;
+  memoryLock = false;
+  memoryMatches = 0;
 
-  flippedCards = [];
-  matchedPairs = 0;
-  memoryMoves = 0;
-  memoryLocked = false;
+  $("#gameContent").innerHTML = `
 
-  document
-    .getElementById("gameModal")
-    .classList.add("show");
+    <div class="quiz-top">
 
-  renderMemoryGame();
-}
-
-
-function renderMemoryGame() {
-
-  document.getElementById("gameContent").innerHTML = `
-
-    <div class="memory-title">
-
-      <div class="game-big-icon">
-        🧩
-      </div>
-
-      <h2>Memory Match</h2>
-
-      <p>
-        Find all the matching pairs!
-      </p>
-
-    </div>
-
-
-    <div class="memory-info">
-
-      <span>
-        🎯 Pairs:
-        <strong id="memoryPairs">
-          0 / ${memoryEmojis.length}
-        </strong>
+      <span class="quiz-category">
+        MEMORY MATCH
       </span>
 
-      <span>
-        🔄 Moves:
-        <strong id="memoryMoves">
-          0
-        </strong>
+      <span class="quiz-progress">
+        Find all pairs
       </span>
 
     </div>
 
+    <h2 class="quiz-question">
+      Match the same pictures! 🧠
+    </h2>
 
     <div class="memory-grid">
 
-      ${memoryCards.map((emoji, index) => `
+      ${cards.map((symbol, index) => `
 
-        <div
-          class="memory-card"
+        <button
+          class="memory-tile"
           data-index="${index}"
-          onclick="flipMemoryCard(${index})"
+          data-symbol="${symbol}"
         >
-
-          <div class="memory-card-inner">
-
-            <div class="memory-front">
-              ?
-            </div>
-
-            <div class="memory-back">
-              ${emoji}
-            </div>
-
-          </div>
-
-        </div>
+          ?
+        </button>
 
       `).join("")}
 
     </div>
 
-  `;
-}
-
-
-function flipMemoryCard(index) {
-
-  if (memoryLocked) return;
-
-  const card =
-    document.querySelector(
-      `.memory-card[data-index="${index}"]`
-    );
-
-  if (!card) return;
-
-  if (
-    card.classList.contains("flipped") ||
-    card.classList.contains("matched")
-  ) {
-    return;
-  }
-
-  card.classList.add("flipped");
-
-  flippedCards.push(index);
-
-  if (flippedCards.length < 2) return;
-
-  memoryMoves++;
-
-  document.getElementById("memoryMoves")
-    .textContent = memoryMoves;
-
-  const first =
-    flippedCards[0];
-
-  const second =
-    flippedCards[1];
-
-
-  if (
-    memoryCards[first] ===
-    memoryCards[second]
-  ) {
-
-    const firstCard =
-      document.querySelector(
-        `.memory-card[data-index="${first}"]`
-      );
-
-    const secondCard =
-      document.querySelector(
-        `.memory-card[data-index="${second}"]`
-      );
-
-    firstCard.classList.add("matched");
-    secondCard.classList.add("matched");
-
-    matchedPairs++;
-
-    flippedCards = [];
-
-    document.getElementById("memoryPairs")
-      .textContent =
-      `${matchedPairs} / ${memoryEmojis.length}`;
-
-    addCoins(8);
-    addXP(20);
-
-    if (
-      matchedPairs === memoryEmojis.length
-    ) {
-
-      setTimeout(() => {
-
-        createConfetti();
-
-        document.getElementById("gameContent")
-          .innerHTML = `
-
-            <div class="quiz-result">
-
-              <div class="result-emoji">
-                🏆
-              </div>
-
-              <h2>Memory Master!</h2>
-
-              <div class="result-score">
-                ${memoryMoves} Moves
-              </div>
-
-              <p class="result-message">
-                You found every pair!
-                Your memory is super strong.
-              </p>
-
-              <div class="result-reward">
-                🪙 +64 Coins &nbsp; ⭐ +160 XP
-              </div>
-
-              <button
-                class="primary-btn full-btn"
-                onclick="closeModal('gameModal')"
-              >
-                Awesome! 🎉
-              </button>
-
-            </div>
-
-          `;
-
-      }, 500);
-    }
-
-  } else {
-
-    memoryLocked = true;
-
-    setTimeout(() => {
-
-      const firstCard =
-        document.querySelector(
-          `.memory-card[data-index="${first}"]`
-        );
-
-      const secondCard =
-        document.querySelector(
-          `.memory-card[data-index="${second}"]`
-        );
-
-      firstCard.classList.remove("flipped");
-      secondCard.classList.remove("flipped");
-
-      flippedCards = [];
-
-      memoryLocked = false;
-
-    }, 700);
-  }
-}
-
-
-/* =========================================
-   WORD BUILDER
-========================================= */
-
-const wordData = [
-  {
-    word: "APPLE",
-    hint: "🍎 A fruit that can be red or green."
-  },
-
-  {
-    word: "TIGER",
-    hint: "🐯 A big striped animal."
-  },
-
-  {
-    word: "SPACE",
-    hint: "🚀 Where astronauts travel."
-  },
-
-  {
-    word: "HOUSE",
-    hint: "🏠 A place where people live."
-  },
-
-  {
-    word: "WATER",
-    hint: "💧 We drink this to stay healthy."
-  }
-];
-
-
-let currentWordIndex = 0;
-let wordScore = 0;
-
-
-function startWordGame() {
-
-  currentWordIndex = 0;
-  wordScore = 0;
-
-  shuffleArray(wordData);
-
-  document
-    .getElementById("gameModal")
-    .classList.add("show");
-
-  renderWordGame();
-}
-
-
-function renderWordGame() {
-
-  if (
-    currentWordIndex >= wordData.length
-  ) {
-
-    finishWordGame();
-
-    return;
-  }
-
-  const item =
-    wordData[currentWordIndex];
-
-  const scrambled =
-    scrambleWord(item.word);
-
-
-  document.getElementById("gameContent").innerHTML = `
-
-    <div class="word-game-container">
-
-      <div class="word-game-icon">
-        🔤
-      </div>
-
-      <h2>Word Builder</h2>
-
-      <p>
-        Unscramble the letters!
-      </p>
-
-      <div class="scrambled-word">
-        ${scrambled}
-      </div>
-
-      <div class="word-hint">
-        💡 ${item.hint}
-      </div>
-
-      <input
-        id="wordAnswer"
-        class="word-input"
-        type="text"
-        autocomplete="off"
-        placeholder="Type the word..."
-      >
-
-      <button
-        class="word-submit"
-        onclick="checkWord()"
-      >
-        Check Answer ✓
-      </button>
-
-      <p
-        style="
-          margin-top:12px;
-          font-size:11px;
-          color:#929bb0;
-        "
-      >
-        Word ${currentWordIndex + 1}
-        of ${wordData.length}
-      </p>
-
+    <div class="memory-info">
+      <span>
+        Matches: <strong id="memoryMatches">0</strong> / 6
+      </span>
+
+      <span>
+        🪙 Win 20 coins
+      </span>
     </div>
 
   `;
 
 
-  const input =
-    document.getElementById("wordAnswer");
+  $$(".memory-tile").forEach(tile => {
 
-  input.focus();
+    tile.addEventListener(
+      "click",
+      () => flipMemoryTile(tile)
+    );
 
-  input.addEventListener(
-    "keydown",
-    function(event) {
+  });
 
-      if (event.key === "Enter") {
-        checkWord();
+
+  openModal("gameModal");
+}
+
+
+function flipMemoryTile(tile) {
+
+  if (memoryLock) return;
+
+  if (tile.classList.contains("flipped")) return;
+
+  if (tile.classList.contains("matched")) return;
+
+
+  tile.classList.add("flipped");
+
+  tile.textContent =
+    tile.dataset.symbol;
+
+
+  if (!memoryFirst) {
+
+    memoryFirst = tile;
+    return;
+
+  }
+
+
+  memorySecond = tile;
+
+  memoryLock = true;
+
+
+  if (
+    memoryFirst.dataset.symbol ===
+    memorySecond.dataset.symbol
+  ) {
+
+    memoryFirst.classList.add("matched");
+    memorySecond.classList.add("matched");
+
+    memoryMatches++;
+
+    $("#memoryMatches").textContent =
+      memoryMatches;
+
+    memoryFirst = null;
+    memorySecond = null;
+    memoryLock = false;
+
+
+    if (memoryMatches === 6) {
+
+      setTimeout(() => {
+
+        addCoins(20);
+        addXP(30);
+        completeActivity();
+
+        createConfetti();
+
+        $("#gameContent").innerHTML = `
+
+          <div class="quiz-result">
+
+            <div class="result-emoji">
+              🧠
+            </div>
+
+            <h2>Memory Master!</h2>
+
+            <p class="result-message">
+              You matched every pair!
+            </p>
+
+            <p style="margin-top:15px;color:#77809c;">
+              🪙 +20 coins<br>
+              ⭐ +30 XP
+            </p>
+
+            <button
+              id="memoryDone"
+              class="btn btn-primary full-btn"
+            >
+              Awesome!
+            </button>
+
+          </div>
+
+        `;
+
+
+        $("#memoryDone").addEventListener(
+          "click",
+          () => closeModal("gameModal")
+        );
+
+      }, 500);
+
+    }
+
+    return;
+
+  }
+
+
+  setTimeout(() => {
+
+    memoryFirst.classList.remove("flipped");
+    memorySecond.classList.remove("flipped");
+
+    memoryFirst.textContent = "?";
+    memorySecond.textContent = "?";
+
+    memoryFirst = null;
+    memorySecond = null;
+    memoryLock = false;
+
+  }, 750);
+
+}
+
+
+/* =========================================================
+   WORD BUILDER
+   ========================================================= */
+
+const wordList = [
+  "STAR",
+  "TREE",
+  "BOOK",
+  "MOON",
+  "FISH"
+];
+
+let currentWord = "";
+let selectedLetters = [];
+
+
+$$("[data-game='word']").forEach(button => {
+
+  button.addEventListener("click", () => {
+    startWordGame();
+  });
+
+});
+
+
+function startWordGame() {
+
+  currentWord =
+    wordList[
+      Math.floor(
+        Math.random() * wordList.length
+      )
+    ];
+
+  selectedLetters = [];
+
+  const letters =
+    currentWord
+      .split("")
+      .sort(() => Math.random() - 0.5);
+
+
+  $("#gameContent").innerHTML = `
+
+    <div class="quiz-top">
+
+      <span class="quiz-category">
+        WORD BUILDER
+      </span>
+
+      <span class="quiz-progress">
+        Build the word
+      </span>
+
+    </div>
+
+    <h2 class="quiz-question">
+      Put the letters in the correct order!
+    </h2>
+
+    <div class="word-target">
+      <span>
+        ${"_".repeat(currentWord.length)}
+      </span>
+    </div>
+
+    <div class="word-current" id="wordCurrent">
+      _
+    </div>
+
+    <div class="letter-grid">
+
+      ${letters.map((letter, index) => `
+
+        <button
+          class="letter-btn"
+          data-letter="${letter}"
+          data-letter-id="${index}"
+        >
+          ${letter}
+        </button>
+
+      `).join("")}
+
+    </div>
+
+    <button
+      id="clearWord"
+      class="btn btn-secondary full-btn"
+    >
+      Clear
+    </button>
+
+  `;
+
+
+  $$(".letter-btn").forEach(button => {
+
+    button.addEventListener("click", () => {
+
+      if (
+        button.disabled ||
+        selectedLetters.length >= currentWord.length
+      ) {
+        return;
       }
+
+      selectedLetters.push(button.dataset.letter);
+
+      button.disabled = true;
+
+      updateCurrentWord();
+
+
+      if (
+        selectedLetters.length ===
+        currentWord.length
+      ) {
+
+        setTimeout(checkWord, 300);
+
+      }
+
+    });
+
+  });
+
+
+  $("#clearWord").addEventListener(
+    "click",
+    () => {
+
+      selectedLetters = [];
+
+      $$(".letter-btn").forEach(button => {
+        button.disabled = false;
+      });
+
+      updateCurrentWord();
 
     }
   );
+
+
+  openModal("gameModal");
+}
+
+
+function updateCurrentWord() {
+
+  const current =
+    selectedLetters.length
+      ? selectedLetters.join("")
+      : "_";
+
+  $("#wordCurrent").textContent = current;
 }
 
 
 function checkWord() {
 
-  const input =
-    document.getElementById("wordAnswer");
-
   const answer =
-    input.value.trim().toUpperCase();
+    selectedLetters.join("");
 
-  const correct =
-    wordData[currentWordIndex].word;
+  if (answer === currentWord) {
 
-
-  if (answer === correct) {
-
-    wordScore++;
-
-    addCoins(15);
-    addXP(30);
-
-    showToast(
-      "🎉",
-      "Correct word!"
-    );
+    addCoins(25);
+    addXP(25);
+    completeActivity();
 
     createConfetti();
 
-    currentWordIndex++;
-
-    setTimeout(
-      renderWordGame,
-      700
-    );
-
-  } else {
-
-    input.style.borderColor =
-      "var(--pink)";
-
-    showToast(
-      "💡",
-      "Try again!"
-    );
-
-    setTimeout(() => {
-      input.style.borderColor =
-        "";
-    }, 700);
-  }
-}
-
-
-function finishWordGame() {
-
-  const total =
-    wordData.length;
-
-
-  document.getElementById("gameContent")
-    .innerHTML = `
+    $("#gameContent").innerHTML = `
 
       <div class="quiz-result">
 
         <div class="result-emoji">
-          🔤
+          🎉
         </div>
 
-        <h2>Word Champion!</h2>
+        <h2>Great Word!</h2>
 
-        <div class="result-score">
-          ${wordScore} / ${total}
-        </div>
-
-        <p class="result-message">
-          Fantastic! You built some amazing words.
+        <p style="
+          font-size:30px;
+          font-weight:800;
+          color:#6c63ff;
+          margin-top:10px;
+        ">
+          ${currentWord}
         </p>
 
-        <div class="result-reward">
-          🪙 Great job! Keep learning!
-        </div>
+        <p class="result-message">
+          You built the word correctly!
+        </p>
+
+        <p style="margin-top:15px;color:#77809c;">
+          🪙 +25 coins<br>
+          ⭐ +25 XP
+        </p>
 
         <button
-          class="primary-btn full-btn"
-          onclick="closeModal('gameModal')"
+          id="wordDone"
+          class="btn btn-primary full-btn"
         >
-          Finish 🎉
+          Awesome!
         </button>
 
       </div>
 
     `;
 
-  createConfetti();
-}
 
-
-/* =========================================
-   XP & COINS
-========================================= */
-
-function addCoins(amount) {
-
-  player.coins += amount;
-
-  updateUI();
-  savePlayer();
-}
-
-
-function addXP(amount) {
-
-  player.xp += amount;
-
-  if (player.xp >= 1000) {
-
-    player.xp -= 1000;
-
-    player.level++;
-
-    showToast(
-      "🚀",
-      "Level Up! You are amazing!"
+    $("#wordDone").addEventListener(
+      "click",
+      () => closeModal("gameModal")
     );
 
-    createConfetti();
+  } else {
+
+    showToast(
+      "💡",
+      "Almost! Try another word."
+    );
+
+    selectedLetters = [];
+
+    $$(".letter-btn").forEach(button => {
+      button.disabled = false;
+    });
+
+    updateCurrentWord();
+
   }
 
-  updateUI();
-  savePlayer();
 }
 
 
-/* =========================================
-   REWARD MESSAGE
-========================================= */
+/* =========================================================
+   DAILY CHALLENGE
+   ========================================================= */
 
-function showRewardMessage() {
+$("#challengeBtn").addEventListener(
+  "click",
+  () => {
 
-  showToast(
-    "🪙",
-    "Play games and complete lessons to earn coins!"
-  );
-}
+    if (player.dailyProgress >= 3) {
+      return;
+    }
 
+    startQuiz("general");
 
-/* =========================================
-   VIEW ALL SUBJECTS
-========================================= */
-
-function showAllSubjects() {
-
-  showToast(
-    "🚀",
-    "More learning adventures are coming soon!"
-  );
-}
-
-
-/* =========================================
-   SCRAMBLE WORD
-========================================= */
-
-function scrambleWord(word) {
-
-  let letters =
-    word.split("");
-
-  let scrambled =
-    word;
-
-
-  while (
-    scrambled === word &&
-    word.length > 1
-  ) {
-
-    shuffleArray(letters);
-
-    scrambled =
-      letters.join("");
   }
-
-  return scrambled;
-}
+);
 
 
-/* =========================================
-   SHUFFLE ARRAY
-========================================= */
-
-function shuffleArray(array) {
-
-  for (
-    let i = array.length - 1;
-    i > 0;
-    i--
-  ) {
-
-    const j =
-      Math.floor(
-        Math.random() * (i + 1)
-      );
-
-    [
-      array[i],
-      array[j]
-    ] =
-    [
-      array[j],
-      array[i]
-    ];
-  }
-
-  return array;
-}
-
-
-/* =========================================
-   ESCAPE
-========================================= */
-
-function escapeQuotes(value) {
-
-  return value
-    .replace(/\\/g, "\\\\")
-    .replace(/'/g, "\\'");
-}
-
-
-/* =========================================
+/* =========================================================
    TOAST
-========================================= */
+   ========================================================= */
 
-let toastTimer;
-
+let toastTimer = null;
 
 function showToast(icon, message) {
 
-  const toast =
-    document.getElementById("toast");
+  const toast = $("#toast");
 
-  document.getElementById("toastIcon")
-    .textContent = icon;
-
-  document.getElementById("toastText")
-    .textContent = message;
+  $("#toastIcon").textContent = icon;
+  $("#toastMessage").textContent = message;
 
   toast.classList.add("show");
 
   clearTimeout(toastTimer);
 
-  toastTimer =
-    setTimeout(() => {
+  toastTimer = setTimeout(() => {
 
-      toast.classList.remove("show");
+    toast.classList.remove("show");
 
-    }, 2500);
+  }, 2200);
 }
 
 
-/* =========================================
+/* =========================================================
    CONFETTI
-========================================= */
+   ========================================================= */
 
 function createConfetti() {
 
-  const symbols = [
-    "⭐",
-    "✨",
-    "🎉",
-    "💫",
-    "🌟"
-  ];
+  const pieces = 35;
 
-  for (let i = 0; i < 22; i++) {
+  for (let i = 0; i < pieces; i++) {
 
     const piece =
       document.createElement("div");
 
-    piece.className =
-      "confetti";
-
-    piece.textContent =
-      symbols[
-        Math.floor(
-          Math.random() * symbols.length
-        )
-      ];
+    piece.className = "confetti";
 
     piece.style.left =
-      Math.random() * 100 + "vw";
+      `${Math.random() * 100}%`;
 
     piece.style.animationDelay =
-      Math.random() * 0.4 + "s";
+      `${Math.random() * 0.4}s`;
 
-    piece.style.fontSize =
-      10 + Math.random() * 12 + "px";
+    piece.style.transform =
+      `rotate(${Math.random() * 360}deg)`;
+
+    const colors = [
+      "#6c63ff",
+      "#ff6fae",
+      "#ffc928",
+      "#39c98a",
+      "#48aaf5",
+      "#ff8b3d"
+    ];
+
+    piece.style.background =
+      colors[
+        Math.floor(Math.random() * colors.length)
+      ];
 
     document.body.appendChild(piece);
 
     setTimeout(() => {
       piece.remove();
-    }, 3000);
+    }, 2200);
+
   }
+
 }
 
 
-/* =========================================
+/* =========================================================
    INITIALIZE
-========================================= */
+   ========================================================= */
 
-document.addEventListener(
-  "DOMContentLoaded",
-  function() {
+function initialize() {
 
-    loadPlayer();
+  updatePlayerUI();
 
-    selectAvatar(player.avatar);
+  const selectedAvatar =
+    $$(".avatar-option").find(
+      button =>
+        button.dataset.avatar === player.avatar
+    );
 
+  if (selectedAvatar) {
+    selectedAvatar.classList.add("selected");
   }
-);
+
+}
+
+initialize();
