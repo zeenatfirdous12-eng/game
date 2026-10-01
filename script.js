@@ -1,17 +1,15 @@
-/* =========================================================
-   WONDERKIDS
-   Main JavaScript
-   No Google Apps Script
-   No backend
-   Uses browser localStorage only
-   ========================================================= */
-
 "use strict";
 
+/* =====================================================
+   WONDERKIDS
+   Interactive learning + games
+   Browser localStorage only
+===================================================== */
 
-/* =========================================================
-   PLAYER DATA
-   ========================================================= */
+
+/* =====================================================
+   PLAYER
+===================================================== */
 
 const defaultPlayer = {
   name: "Young Explorer",
@@ -27,8 +25,11 @@ const defaultPlayer = {
 let player = loadPlayer();
 
 function loadPlayer() {
+
   try {
-    const saved = localStorage.getItem("wonderkids_player");
+
+    const saved =
+      localStorage.getItem("wonderkids_player");
 
     if (!saved) {
       return { ...defaultPlayer };
@@ -40,106 +41,168 @@ function loadPlayer() {
     };
 
   } catch (error) {
-    console.error("Could not load player:", error);
+
+    console.error(error);
+
     return { ...defaultPlayer };
+
   }
+
 }
 
 function savePlayer() {
+
   localStorage.setItem(
     "wonderkids_player",
     JSON.stringify(player)
   );
+
 }
 
 
-/* =========================================================
-   DOM HELPERS
-   ========================================================= */
+/* =====================================================
+   HELPERS
+===================================================== */
 
-const $ = (selector) => document.querySelector(selector);
+const $ = selector =>
+  document.querySelector(selector);
 
-const $$ = (selector) => {
-  return Array.from(document.querySelectorAll(selector));
-};
+const $$ = selector =>
+  Array.from(document.querySelectorAll(selector));
 
 
-/* =========================================================
-   UPDATE PLAYER UI
-   ========================================================= */
+/* =====================================================
+   UI UPDATE
+===================================================== */
 
 function updatePlayerUI() {
 
-  $("#coinCount").textContent = player.coins;
-  $("#heartCount").textContent = player.hearts;
+  const coin = $("#coinCount");
+  const heart = $("#heartCount");
+  const heroName = $("#heroName");
+  const levelNumber = $("#levelNumber");
+  const levelText = $("#levelText");
+  const streak = $("#streakCount");
 
-  $("#heroName").textContent = player.name;
+  if (coin) coin.textContent = player.coins;
+  if (heart) heart.textContent = player.hearts;
+  if (heroName) heroName.textContent = player.name;
+  if (levelNumber) levelNumber.textContent = player.level;
+  if (levelText) levelText.textContent = player.level;
+  if (streak) streak.textContent = player.streak;
 
-  $("#levelNumber").textContent = player.level;
-  $("#levelText").textContent = player.level;
 
-  $("#streakCount").textContent = player.streak;
+  const xpIntoLevel =
+    player.xp % 1000;
 
-  const xpIntoLevel = player.xp % 1000;
-  const xpPercent = Math.min(
-    100,
-    (xpIntoLevel / 1000) * 100
-  );
+  const xpPercent =
+    Math.min(
+      100,
+      (xpIntoLevel / 1000) * 100
+    );
 
-  $("#xpFill").style.width = `${xpPercent}%`;
+  const xpFill = $("#xpFill");
 
-  $("#xpText").textContent =
-    `${xpIntoLevel} / 1000 XP`;
+  if (xpFill) {
+    xpFill.style.width =
+      `${xpPercent}%`;
+  }
+
+  const xpText = $("#xpText");
+
+  if (xpText) {
+    xpText.textContent =
+      `${xpIntoLevel} / 1000 XP`;
+  }
+
 
   const dailyPercent =
-    Math.min(100, (player.dailyProgress / 3) * 100);
+    Math.min(
+      100,
+      (player.dailyProgress / 3) * 100
+    );
 
-  $("#dailyProgressText").textContent =
-    `${Math.round(dailyPercent)}%`;
+  const dailyProgress =
+    $("#dailyProgressText");
 
-  $("#challengeFill").style.width =
-    `${dailyPercent}%`;
-
-  $("#challengeCount").textContent =
-    `${Math.min(player.dailyProgress, 3)} / 3`;
-
-  const avatarButton = $("#profileBtn");
-
-  if (avatarButton) {
-    avatarButton.textContent = player.avatar;
+  if (dailyProgress) {
+    dailyProgress.textContent =
+      `${Math.round(dailyPercent)}%`;
   }
 
-  const playerNameInput = $("#playerName");
 
-  if (playerNameInput) {
-    playerNameInput.value = player.name;
+  const challengeFill =
+    $("#challengeFill");
+
+  if (challengeFill) {
+    challengeFill.style.width =
+      `${dailyPercent}%`;
   }
+
+
+  const challengeCount =
+    $("#challengeCount");
+
+  if (challengeCount) {
+    challengeCount.textContent =
+      `${Math.min(player.dailyProgress,3)} / 3`;
+  }
+
+
+  const avatar =
+    $("#profileBtn");
+
+  if (avatar) {
+    avatar.textContent =
+      player.avatar;
+  }
+
+
+  const input =
+    $("#playerName");
+
+  if (input) {
+    input.value =
+      player.name;
+  }
+
 
   updateChallengeButton();
+
 }
 
 
 function updateChallengeButton() {
 
-  const button = $("#challengeBtn");
+  const button =
+    $("#challengeBtn");
 
   if (!button) return;
 
   if (player.dailyProgress >= 3) {
-    button.textContent = "🎉 Completed!";
+
+    button.textContent =
+      "🎉 Completed!";
+
     button.disabled = true;
-    button.style.opacity = "0.65";
+    button.style.opacity = ".65";
+
   } else {
-    button.textContent = "Start Challenge";
+
+    button.textContent =
+      "Start Challenge";
+
     button.disabled = false;
     button.style.opacity = "1";
+
   }
+
 }
 
 
-/* =========================================================
-   XP & COINS
-   ========================================================= */
+/* =====================================================
+   COINS
+===================================================== */
 
 function addCoins(amount) {
 
@@ -152,12 +215,18 @@ function addCoins(amount) {
     "🪙",
     `+${amount} coins!`
   );
+
 }
 
 
+/* =====================================================
+   XP
+===================================================== */
+
 function addXP(amount) {
 
-  const oldLevel = player.level;
+  const oldLevel =
+    player.level;
 
   player.xp += amount;
 
@@ -173,17 +242,26 @@ function addXP(amount) {
   );
 
   if (player.level > oldLevel) {
+
     setTimeout(() => {
+
       showToast(
         "🏆",
         `Level ${player.level} unlocked!`
       );
 
       createConfetti();
-    }, 500);
+
+    },500);
+
   }
+
 }
 
+
+/* =====================================================
+   ACTIVITY
+===================================================== */
 
 function completeActivity() {
 
@@ -193,27 +271,33 @@ function completeActivity() {
 
   savePlayer();
   updatePlayerUI();
+
 }
 
 
-/* =========================================================
-   PROFILE
-   ========================================================= */
+/* =====================================================
+   MODALS
+===================================================== */
 
 function openModal(id) {
 
-  const modal = document.getElementById(id);
+  const modal =
+    document.getElementById(id);
 
   if (!modal) return;
 
   modal.classList.add("show");
-  document.body.style.overflow = "hidden";
+
+  document.body.style.overflow =
+    "hidden";
+
 }
 
 
 function closeModal(id) {
 
-  const modal = document.getElementById(id);
+  const modal =
+    document.getElementById(id);
 
   if (!modal) return;
 
@@ -222,249 +306,320 @@ function closeModal(id) {
   if (!$(".modal-overlay.show")) {
     document.body.style.overflow = "";
   }
+
 }
 
 
-$("#profileBtn").addEventListener("click", () => {
+/* =====================================================
+   PROFILE
+===================================================== */
 
-  $("#playerName").value = player.name;
+$("#profileBtn")?.addEventListener(
+  "click",
+  () => {
 
-  $$(".avatar-option").forEach(button => {
-    button.classList.toggle(
-      "selected",
-      button.dataset.avatar === player.avatar
-    );
-  });
+    const input =
+      $("#playerName");
 
-  openModal("profileModal");
-});
-
-
-$$(".avatar-option").forEach(button => {
-
-  button.addEventListener("click", () => {
-
-    $$(".avatar-option").forEach(btn => {
-      btn.classList.remove("selected");
-    });
-
-    button.classList.add("selected");
-
-    player.avatar = button.dataset.avatar;
-  });
-
-});
-
-
-$("#saveProfile").addEventListener("click", () => {
-
-  const enteredName =
-    $("#playerName").value.trim();
-
-  if (enteredName.length > 0) {
-    player.name = enteredName;
-  }
-
-  savePlayer();
-  updatePlayerUI();
-  closeModal("profileModal");
-
-  showToast(
-    "✨",
-    "Profile saved!"
-  );
-});
-
-
-$$("[data-close]").forEach(button => {
-
-  button.addEventListener("click", () => {
-    closeModal(button.dataset.close);
-  });
-
-});
-
-
-$$(".modal-overlay").forEach(overlay => {
-
-  overlay.addEventListener("click", (event) => {
-
-    if (event.target === overlay) {
-      closeModal(overlay.id);
+    if (input) {
+      input.value =
+        player.name;
     }
 
-  });
+    $$(".avatar-option")
+      .forEach(button => {
 
-});
+        button.classList.toggle(
+          "selected",
+          button.dataset.avatar ===
+          player.avatar
+        );
 
+      });
 
-document.addEventListener("keydown", (event) => {
-
-  if (event.key === "Escape") {
-
-    $$(".modal-overlay.show").forEach(modal => {
-      closeModal(modal.id);
-    });
+    openModal("profileModal");
 
   }
+);
 
-});
 
+$$(".avatar-option")
+  .forEach(button => {
 
-/* =========================================================
-   NAVIGATION
-   ========================================================= */
+    button.addEventListener(
+      "click",
+      () => {
 
-$$(".nav-link").forEach(link => {
+        $$(".avatar-option")
+          .forEach(btn =>
+            btn.classList.remove("selected")
+          );
 
-  link.addEventListener("click", () => {
+        button.classList.add("selected");
 
-    $$(".nav-link").forEach(item => {
-      item.classList.remove("active");
-    });
+        player.avatar =
+          button.dataset.avatar;
 
-    link.classList.add("active");
+      }
+    );
 
   });
 
-});
+
+$("#saveProfile")?.addEventListener(
+  "click",
+  () => {
+
+    const enteredName =
+      $("#playerName").value.trim();
+
+    if (enteredName) {
+      player.name =
+        enteredName;
+    }
+
+    savePlayer();
+    updatePlayerUI();
+
+    closeModal("profileModal");
+
+    showToast(
+      "✨",
+      "Profile saved!"
+    );
+
+  }
+);
 
 
-/* =========================================================
+$$("[data-close]")
+  .forEach(button => {
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        closeModal(
+          button.dataset.close
+        );
+
+      }
+    );
+
+  });
+
+
+$$(".modal-overlay")
+  .forEach(overlay => {
+
+    overlay.addEventListener(
+      "click",
+      event => {
+
+        if (
+          event.target === overlay
+        ) {
+
+          closeModal(
+            overlay.id
+          );
+
+        }
+
+      }
+    );
+
+  });
+
+
+document.addEventListener(
+  "keydown",
+  event => {
+
+    if (event.key === "Escape") {
+
+      $$(".modal-overlay.show")
+        .forEach(modal => {
+
+          closeModal(
+            modal.id
+          );
+
+        });
+
+    }
+
+  }
+);
+
+
+/* =====================================================
+   NAVIGATION
+===================================================== */
+
+$$(".nav-link")
+  .forEach(link => {
+
+    link.addEventListener(
+      "click",
+      () => {
+
+        $$(".nav-link")
+          .forEach(item =>
+            item.classList.remove("active")
+          );
+
+        link.classList.add("active");
+
+      }
+    );
+
+  });
+
+
+/* =====================================================
    QUIZ DATA
-   ========================================================= */
+===================================================== */
 
 const quizData = {
 
   math: [
+
     {
       question: "What is 5 + 3?",
-      options: ["6", "7", "8", "9"],
+      options: ["6","7","8","9"],
       answer: 2
     },
 
     {
       question: "What is 10 - 4?",
-      options: ["4", "5", "6", "7"],
+      options: ["4","5","6","7"],
       answer: 2
     },
 
     {
       question: "Which number is bigger?",
-      options: ["3", "7", "5", "2"],
+      options: ["3","7","5","2"],
       answer: 1
     },
 
     {
       question: "What is 2 × 4?",
-      options: ["6", "7", "8", "9"],
+      options: ["6","7","8","9"],
       answer: 2
     },
 
     {
       question: "How many sides does a triangle have?",
-      options: ["2", "3", "4", "5"],
+      options: ["2","3","4","5"],
       answer: 1
     }
+
   ],
 
 
   english: [
+
     {
       question: "Which word is a color?",
-      options: ["Apple", "Blue", "Dog", "Run"],
+      options: ["Apple","Blue","Dog","Run"],
       answer: 1
     },
 
     {
       question: "Which one is an animal?",
-      options: ["Table", "Tiger", "Chair", "Book"],
+      options: ["Table","Tiger","Chair","Book"],
       answer: 1
     },
 
     {
       question: "What is the opposite of BIG?",
-      options: ["Tall", "Small", "Fast", "Happy"],
+      options: ["Tall","Small","Fast","Happy"],
       answer: 1
     },
 
     {
       question: "Which word rhymes with CAT?",
-      options: ["Dog", "Hat", "Sun", "Tree"],
+      options: ["Dog","Hat","Sun","Tree"],
       answer: 1
     },
 
     {
       question: "Which word starts with B?",
-      options: ["Apple", "Banana", "Orange", "Elephant"],
+      options: ["Apple","Banana","Orange","Elephant"],
       answer: 1
     }
+
   ],
 
 
   science: [
+
     {
       question: "Which planet do we live on?",
-      options: ["Mars", "Earth", "Jupiter", "Venus"],
+      options: ["Mars","Earth","Jupiter","Venus"],
       answer: 1
     },
 
     {
       question: "What gives us light during the day?",
-      options: ["Moon", "Stars", "Sun", "Cloud"],
+      options: ["Moon","Stars","Sun","Cloud"],
       answer: 2
     },
 
     {
       question: "Which animal can fly?",
-      options: ["Fish", "Bird", "Dog", "Horse"],
+      options: ["Fish","Bird","Dog","Horse"],
       answer: 1
     },
 
     {
       question: "What do plants need to grow?",
-      options: ["Water", "Shoes", "Toys", "Cars"],
+      options: ["Water","Shoes","Toys","Cars"],
       answer: 0
     },
 
     {
       question: "Which one lives in water?",
-      options: ["Fish", "Cat", "Cow", "Lion"],
+      options: ["Fish","Cat","Cow","Lion"],
       answer: 0
     }
+
   ],
 
 
   general: [
+
     {
       question: "How many days are in a week?",
-      options: ["5", "6", "7", "8"],
+      options: ["5","6","7","8"],
       answer: 2
     },
 
     {
       question: "Which shape is round?",
-      options: ["Square", "Triangle", "Circle", "Rectangle"],
+      options: ["Square","Triangle","Circle","Rectangle"],
       answer: 2
     },
 
     {
       question: "Which one is used for writing?",
-      options: ["Pencil", "Spoon", "Ball", "Shoe"],
+      options: ["Pencil","Spoon","Ball","Shoe"],
       answer: 0
     },
 
     {
       question: "What color is grass usually?",
-      options: ["Green", "Purple", "Pink", "Black"],
+      options: ["Green","Purple","Pink","Black"],
       answer: 0
     },
 
     {
       question: "Which one is a fruit?",
-      options: ["Carrot", "Apple", "Potato", "Onion"],
+      options: ["Carrot","Apple","Potato","Onion"],
       answer: 1
     }
+
   ]
 
 };
@@ -476,27 +631,34 @@ let quizScore = 0;
 let quizAnswered = false;
 
 
-/* =========================================================
-   OPEN SUBJECT QUIZ
-   ========================================================= */
+/* =====================================================
+   START QUIZ
+===================================================== */
 
-$$("[data-quiz]").forEach(button => {
+$$("[data-quiz]")
+  .forEach(button => {
 
-  button.addEventListener("click", () => {
+    button.addEventListener(
+      "click",
+      () => {
 
-    const category = button.dataset.quiz;
+        startQuiz(
+          button.dataset.quiz
+        );
 
-    startQuiz(category);
+      }
+    );
 
   });
-
-});
 
 
 function startQuiz(category) {
 
   currentQuiz =
-    [...(quizData[category] || quizData.general)];
+    [
+      ...(quizData[category] ||
+        quizData.general)
+    ];
 
   currentQuizIndex = 0;
   quizScore = 0;
@@ -515,9 +677,13 @@ function renderQuiz(category) {
     currentQuiz[currentQuizIndex];
 
   if (!question) {
+
     showQuizResult(category);
+
     return;
+
   }
+
 
   $("#gameContent").innerHTML = `
 
@@ -528,7 +694,9 @@ function renderQuiz(category) {
       </span>
 
       <span class="quiz-progress">
-        ${currentQuizIndex + 1} / ${currentQuiz.length}
+        ${currentQuizIndex + 1}
+        /
+        ${currentQuiz.length}
       </span>
 
     </div>
@@ -539,41 +707,50 @@ function renderQuiz(category) {
 
     <div class="quiz-options">
 
-      ${question.options.map((option, index) => `
+      ${question.options
+        .map((option,index) => `
 
-        <button
-          class="quiz-option"
-          data-option="${index}"
-        >
-          ${option}
-        </button>
+          <button
+            class="quiz-option"
+            data-option="${index}">
+            ${option}
+          </button>
 
-      `).join("")}
+        `)
+        .join("")}
 
     </div>
 
   `;
 
 
-  $$(".quiz-option").forEach(button => {
+  $$(".quiz-option")
+    .forEach(button => {
 
-    button.addEventListener("click", () => {
+      button.addEventListener(
+        "click",
+        () => {
 
-      checkQuizAnswer(
-        Number(button.dataset.option),
-        category
+          checkQuizAnswer(
+            Number(button.dataset.option),
+            category
+          );
+
+        }
       );
 
     });
 
-  });
-
 }
 
 
-function checkQuizAnswer(selected, category) {
+function checkQuizAnswer(
+  selected,
+  category
+) {
 
-  if (quizAnswered) return;
+  if (quizAnswered)
+    return;
 
   quizAnswered = true;
 
@@ -588,11 +765,15 @@ function checkQuizAnswer(selected, category) {
   });
 
 
-  if (selected === question.answer) {
+  if (
+    selected ===
+    question.answer
+  ) {
 
     quizScore++;
 
-    buttons[selected].classList.add("correct");
+    buttons[selected]
+      .classList.add("correct");
 
     showToast(
       "🎉",
@@ -601,9 +782,11 @@ function checkQuizAnswer(selected, category) {
 
   } else {
 
-    buttons[selected].classList.add("wrong");
+    buttons[selected]
+      .classList.add("wrong");
 
-    buttons[question.answer].classList.add("correct");
+    buttons[question.answer]
+      .classList.add("correct");
 
     showToast(
       "💡",
@@ -620,7 +803,7 @@ function checkQuizAnswer(selected, category) {
 
     renderQuiz(category);
 
-  }, 800);
+  },800);
 
 }
 
@@ -633,6 +816,7 @@ function showQuizResult(category) {
   const earnedXP =
     quizScore * 15;
 
+
   $("#gameContent").innerHTML = `
 
     <div class="quiz-result">
@@ -641,7 +825,9 @@ function showQuizResult(category) {
         ${quizScore >= 4 ? "🏆" : "🌟"}
       </div>
 
-      <h2>Quiz Complete!</h2>
+      <h2>
+        Quiz Complete!
+      </h2>
 
       <div class="result-score">
         ${quizScore}/${currentQuiz.length}
@@ -651,16 +837,19 @@ function showQuizResult(category) {
         ${getQuizMessage(quizScore)}
       </p>
 
-      <div style="margin-top:20px; color:#77809c;">
+      <p style="
+        margin-top:20px;
+        color:#77809c;
+        line-height:1.8;
+      ">
         🪙 +${earnedCoins} coins
         <br>
         ⭐ +${earnedXP} XP
-      </div>
+      </p>
 
       <button
         id="quizDone"
-        class="btn btn-primary full-btn"
-      >
+        class="btn btn-primary full-btn">
         Awesome!
       </button>
 
@@ -676,48 +865,49 @@ function showQuizResult(category) {
   createConfetti();
 
 
-  $("#quizDone").addEventListener(
-    "click",
-    () => closeModal("gameModal")
-  );
+  $("#quizDone")
+    .addEventListener(
+      "click",
+      () => closeModal("gameModal")
+    );
 
 }
 
 
 function getQuizMessage(score) {
 
-  if (score === 5) {
+  if (score === 5)
     return "Amazing! You're a superstar! 🌟";
-  }
 
-  if (score >= 4) {
+  if (score >= 4)
     return "Fantastic work! Keep going! 🚀";
-  }
 
-  if (score >= 2) {
+  if (score >= 2)
     return "Nice try! Practice makes you stronger! 💪";
-  }
 
   return "Great effort! Let's try again! 😊";
+
 }
 
 
-/* =========================================================
-   QUICK QUIZ GAME
-   ========================================================= */
+/* =====================================================
+   QUICK QUIZ
+===================================================== */
 
-$$("[data-game='quiz']").forEach(button => {
+$$("[data-game='quiz']")
+  .forEach(button => {
 
-  button.addEventListener("click", () => {
-    startQuiz("general");
+    button.addEventListener(
+      "click",
+      () => startQuiz("general")
+    );
+
   });
 
-});
 
-
-/* =========================================================
+/* =====================================================
    MEMORY GAME
-   ========================================================= */
+===================================================== */
 
 let memoryFirst = null;
 let memorySecond = null;
@@ -734,25 +924,31 @@ const memorySymbols = [
 ];
 
 
-$$("[data-game='memory']").forEach(button => {
+$$("[data-game='memory']")
+  .forEach(button => {
 
-  button.addEventListener("click", () => {
-    startMemoryGame();
+    button.addEventListener(
+      "click",
+      startMemoryGame
+    );
+
   });
-
-});
 
 
 function startMemoryGame() {
 
   const cards =
-    [...memorySymbols, ...memorySymbols]
-      .sort(() => Math.random() - 0.5);
+    [
+      ...memorySymbols,
+      ...memorySymbols
+    ]
+    .sort(() => Math.random() - .5);
 
   memoryFirst = null;
   memorySecond = null;
   memoryLock = false;
   memoryMatches = 0;
+
 
   $("#gameContent").innerHTML = `
 
@@ -774,13 +970,12 @@ function startMemoryGame() {
 
     <div class="memory-grid">
 
-      ${cards.map((symbol, index) => `
+      ${cards.map((symbol,index) => `
 
         <button
           class="memory-tile"
           data-index="${index}"
-          data-symbol="${symbol}"
-        >
+          data-symbol="${symbol}">
           ?
         </button>
 
@@ -789,39 +984,48 @@ function startMemoryGame() {
     </div>
 
     <div class="memory-info">
+
       <span>
-        Matches: <strong id="memoryMatches">0</strong> / 6
+        Matches:
+        <strong id="memoryMatches">0</strong>
+        / 6
       </span>
 
       <span>
         🪙 Win 20 coins
       </span>
+
     </div>
 
   `;
 
 
-  $$(".memory-tile").forEach(tile => {
+  $$(".memory-tile")
+    .forEach(tile => {
 
-    tile.addEventListener(
-      "click",
-      () => flipMemoryTile(tile)
-    );
+      tile.addEventListener(
+        "click",
+        () => flipMemoryTile(tile)
+      );
 
-  });
+    });
 
 
   openModal("gameModal");
+
 }
 
 
 function flipMemoryTile(tile) {
 
-  if (memoryLock) return;
+  if (memoryLock)
+    return;
 
-  if (tile.classList.contains("flipped")) return;
-
-  if (tile.classList.contains("matched")) return;
+  if (
+    tile.classList.contains("flipped") ||
+    tile.classList.contains("matched")
+  )
+    return;
 
 
   tile.classList.add("flipped");
@@ -833,13 +1037,13 @@ function flipMemoryTile(tile) {
   if (!memoryFirst) {
 
     memoryFirst = tile;
+
     return;
 
   }
 
 
   memorySecond = tile;
-
   memoryLock = true;
 
 
@@ -853,7 +1057,8 @@ function flipMemoryTile(tile) {
 
     memoryMatches++;
 
-    $("#memoryMatches").textContent =
+    $("#memoryMatches")
+      .textContent =
       memoryMatches;
 
     memoryFirst = null;
@@ -863,51 +1068,10 @@ function flipMemoryTile(tile) {
 
     if (memoryMatches === 6) {
 
-      setTimeout(() => {
-
-        addCoins(20);
-        addXP(30);
-        completeActivity();
-
-        createConfetti();
-
-        $("#gameContent").innerHTML = `
-
-          <div class="quiz-result">
-
-            <div class="result-emoji">
-              🧠
-            </div>
-
-            <h2>Memory Master!</h2>
-
-            <p class="result-message">
-              You matched every pair!
-            </p>
-
-            <p style="margin-top:15px;color:#77809c;">
-              🪙 +20 coins<br>
-              ⭐ +30 XP
-            </p>
-
-            <button
-              id="memoryDone"
-              class="btn btn-primary full-btn"
-            >
-              Awesome!
-            </button>
-
-          </div>
-
-        `;
-
-
-        $("#memoryDone").addEventListener(
-          "click",
-          () => closeModal("gameModal")
-        );
-
-      }, 500);
+      setTimeout(
+        finishMemoryGame,
+        500
+      );
 
     }
 
@@ -926,16 +1090,72 @@ function flipMemoryTile(tile) {
 
     memoryFirst = null;
     memorySecond = null;
+
     memoryLock = false;
 
-  }, 750);
+  },750);
 
 }
 
 
-/* =========================================================
+function finishMemoryGame() {
+
+  addCoins(20);
+  addXP(30);
+  completeActivity();
+
+  createConfetti();
+
+
+  $("#gameContent").innerHTML = `
+
+    <div class="quiz-result">
+
+      <div class="result-emoji">
+        🧠
+      </div>
+
+      <h2>
+        Memory Master!
+      </h2>
+
+      <p class="result-message">
+        You matched every pair!
+      </p>
+
+      <p style="
+        margin-top:15px;
+        color:#77809c;
+        line-height:1.8;
+      ">
+        🪙 +20 coins
+        <br>
+        ⭐ +30 XP
+      </p>
+
+      <button
+        id="memoryDone"
+        class="btn btn-primary full-btn">
+        Awesome!
+      </button>
+
+    </div>
+
+  `;
+
+
+  $("#memoryDone")
+    .addEventListener(
+      "click",
+      () => closeModal("gameModal")
+    );
+
+}
+
+
+/* =====================================================
    WORD BUILDER
-   ========================================================= */
+===================================================== */
 
 const wordList = [
   "STAR",
@@ -949,13 +1169,15 @@ let currentWord = "";
 let selectedLetters = [];
 
 
-$$("[data-game='word']").forEach(button => {
+$$("[data-game='word']")
+  .forEach(button => {
 
-  button.addEventListener("click", () => {
-    startWordGame();
+    button.addEventListener(
+      "click",
+      startWordGame
+    );
+
   });
-
-});
 
 
 function startWordGame() {
@@ -963,16 +1185,18 @@ function startWordGame() {
   currentWord =
     wordList[
       Math.floor(
-        Math.random() * wordList.length
+        Math.random() *
+        wordList.length
       )
     ];
 
   selectedLetters = [];
 
+
   const letters =
     currentWord
       .split("")
-      .sort(() => Math.random() - 0.5);
+      .sort(() => Math.random() - .5);
 
 
   $("#gameContent").innerHTML = `
@@ -999,19 +1223,20 @@ function startWordGame() {
       </span>
     </div>
 
-    <div class="word-current" id="wordCurrent">
+    <div
+      class="word-current"
+      id="wordCurrent">
       _
     </div>
 
     <div class="letter-grid">
 
-      ${letters.map((letter, index) => `
+      ${letters.map((letter,index) => `
 
         <button
           class="letter-btn"
           data-letter="${letter}"
-          data-letter-id="${index}"
-        >
+          data-letter-id="${index}">
           ${letter}
         </button>
 
@@ -1021,63 +1246,75 @@ function startWordGame() {
 
     <button
       id="clearWord"
-      class="btn btn-secondary full-btn"
-    >
+      class="btn btn-secondary full-btn">
       Clear
     </button>
 
   `;
 
 
-  $$(".letter-btn").forEach(button => {
+  $$(".letter-btn")
+    .forEach(button => {
 
-    button.addEventListener("click", () => {
+      button.addEventListener(
+        "click",
+        () => {
 
-      if (
-        button.disabled ||
-        selectedLetters.length >= currentWord.length
-      ) {
-        return;
-      }
+          if (
+            button.disabled ||
+            selectedLetters.length >=
+            currentWord.length
+          ) {
+            return;
+          }
 
-      selectedLetters.push(button.dataset.letter);
+          selectedLetters.push(
+            button.dataset.letter
+          );
 
-      button.disabled = true;
+          button.disabled = true;
 
-      updateCurrentWord();
+          updateCurrentWord();
 
 
-      if (
-        selectedLetters.length ===
-        currentWord.length
-      ) {
+          if (
+            selectedLetters.length ===
+            currentWord.length
+          ) {
 
-        setTimeout(checkWord, 300);
+            setTimeout(
+              checkWord,
+              300
+            );
 
-      }
+          }
+
+        }
+      );
 
     });
 
-  });
 
+  $("#clearWord")
+    .addEventListener(
+      "click",
+      () => {
 
-  $("#clearWord").addEventListener(
-    "click",
-    () => {
+        selectedLetters = [];
 
-      selectedLetters = [];
+        $$(".letter-btn")
+          .forEach(button => {
+            button.disabled = false;
+          });
 
-      $$(".letter-btn").forEach(button => {
-        button.disabled = false;
-      });
+        updateCurrentWord();
 
-      updateCurrentWord();
-
-    }
-  );
+      }
+    );
 
 
   openModal("gameModal");
+
 }
 
 
@@ -1088,7 +1325,10 @@ function updateCurrentWord() {
       ? selectedLetters.join("")
       : "_";
 
-  $("#wordCurrent").textContent = current;
+  $("#wordCurrent")
+    .textContent =
+    current;
+
 }
 
 
@@ -1096,6 +1336,7 @@ function checkWord() {
 
   const answer =
     selectedLetters.join("");
+
 
   if (answer === currentWord) {
 
@@ -1105,6 +1346,7 @@ function checkWord() {
 
     createConfetti();
 
+
     $("#gameContent").innerHTML = `
 
       <div class="quiz-result">
@@ -1113,7 +1355,9 @@ function checkWord() {
           🎉
         </div>
 
-        <h2>Great Word!</h2>
+        <h2>
+          Great Word!
+        </h2>
 
         <p style="
           font-size:30px;
@@ -1128,15 +1372,19 @@ function checkWord() {
           You built the word correctly!
         </p>
 
-        <p style="margin-top:15px;color:#77809c;">
-          🪙 +25 coins<br>
+        <p style="
+          margin-top:15px;
+          color:#77809c;
+          line-height:1.8;
+        ">
+          🪙 +25 coins
+          <br>
           ⭐ +25 XP
         </p>
 
         <button
           id="wordDone"
-          class="btn btn-primary full-btn"
-        >
+          class="btn btn-primary full-btn">
           Awesome!
         </button>
 
@@ -1145,23 +1393,25 @@ function checkWord() {
     `;
 
 
-    $("#wordDone").addEventListener(
-      "click",
-      () => closeModal("gameModal")
-    );
+    $("#wordDone")
+      .addEventListener(
+        "click",
+        () => closeModal("gameModal")
+      );
 
   } else {
 
     showToast(
       "💡",
-      "Almost! Try another word."
+      "Almost! Try again."
     );
 
     selectedLetters = [];
 
-    $$(".letter-btn").forEach(button => {
-      button.disabled = false;
-    });
+    $$(".letter-btn")
+      .forEach(button => {
+        button.disabled = false;
+      });
 
     updateCurrentWord();
 
@@ -1170,111 +1420,140 @@ function checkWord() {
 }
 
 
-/* =========================================================
-   DAILY CHALLENGE
-   ========================================================= */
+/* =====================================================
+DAILY CHALLENGE
+===================================================== */
 
-$("#challengeBtn").addEventListener(
-  "click",
-  () => {
+$("#challengeBtn")
+  ?.addEventListener(
+    "click",
+    () => {
 
-    if (player.dailyProgress >= 3) {
-      return;
+      if (
+        player.dailyProgress >= 3
+      ) {
+        return;
+      }
+
+      startQuiz("general");
+
     }
-
-    startQuiz("general");
-
-  }
-);
+  );
 
 
-/* =========================================================
-   TOAST
-   ========================================================= */
+/* =====================================================
+TOAST
+===================================================== */
 
 let toastTimer = null;
 
-function showToast(icon, message) {
+function showToast(
+  icon,
+  message
+) {
 
-  const toast = $("#toast");
+  const toast =
+    $("#toast");
 
-  $("#toastIcon").textContent = icon;
-  $("#toastMessage").textContent = message;
+  if (!toast)
+    return;
+
+  $("#toastIcon")
+    .textContent = icon;
+
+  $("#toastMessage")
+    .textContent = message;
 
   toast.classList.add("show");
 
   clearTimeout(toastTimer);
 
-  toastTimer = setTimeout(() => {
+  toastTimer =
+    setTimeout(() => {
 
-    toast.classList.remove("show");
+      toast.classList.remove("show");
 
-  }, 2200);
+    },2200);
+
 }
 
 
-/* =========================================================
-   CONFETTI
-   ========================================================= */
+/* =====================================================
+CONFETTI
+===================================================== */
 
 function createConfetti() {
 
-  const pieces = 35;
+  const pieces = 40;
 
-  for (let i = 0; i < pieces; i++) {
+  const colors = [
+    "#6c63ff",
+    "#ff6fae",
+    "#ffc928",
+    "#39c98a",
+    "#48aaf5",
+    "#ff8b3d"
+  ];
+
+
+  for (
+    let i = 0;
+    i < pieces;
+    i++
+  ) {
 
     const piece =
       document.createElement("div");
 
-    piece.className = "confetti";
+    piece.className =
+      "confetti";
 
     piece.style.left =
       `${Math.random() * 100}%`;
 
     piece.style.animationDelay =
-      `${Math.random() * 0.4}s`;
+      `${Math.random() * .4}s`;
+
+    piece.style.background =
+      colors[
+        Math.floor(
+          Math.random() *
+          colors.length
+        )
+      ];
 
     piece.style.transform =
       `rotate(${Math.random() * 360}deg)`;
 
-    const colors = [
-      "#6c63ff",
-      "#ff6fae",
-      "#ffc928",
-      "#39c98a",
-      "#48aaf5",
-      "#ff8b3d"
-    ];
+    document.body
+      .appendChild(piece);
 
-    piece.style.background =
-      colors[
-        Math.floor(Math.random() * colors.length)
-      ];
 
-    document.body.appendChild(piece);
-
-    setTimeout(() => {
-      piece.remove();
-    }, 2200);
+    setTimeout(
+      () => piece.remove(),
+      2200
+    );
 
   }
 
 }
 
 
-/* =========================================================
-   INITIALIZE
-   ========================================================= */
+/* =====================================================
+INITIALIZE
+===================================================== */
 
 function initialize() {
 
   updatePlayerUI();
 
   const selectedAvatar =
-    $$(".avatar-option").find(
-      button =>
-        button.dataset.avatar === player.avatar
-    );
+    $$(".avatar-option")
+      .find(
+        button =>
+          button.dataset.avatar ===
+          player.avatar
+      );
 
   if (selectedAvatar) {
     selectedAvatar.classList.add("selected");
